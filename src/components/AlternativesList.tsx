@@ -1,0 +1,70 @@
+import React from "react";
+import type { SustainableAlternative } from "@/lib/types";
+
+interface AlternativesListProps {
+	readonly alternatives: readonly SustainableAlternative[];
+}
+
+export function AlternativesList({
+	alternatives,
+}: AlternativesListProps): React.JSX.Element {
+	if (alternatives.length === 0) {
+		return <></>;
+	}
+
+	return (
+		<section className="section" aria-labelledby="alts-heading">
+			<div className="card">
+				<h2 id="alts-heading" className="section-title">
+					<span aria-hidden="true">🌱</span>
+					<span>Sustainable Alternatives & Quantified Impact</span>
+				</h2>
+				<p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: "1.25rem" }}>
+					Direct emissions avoided by transitioning commute, cooking, or heating to clean alternatives.
+				</p>
+
+				<div className="alts-list">
+					{alternatives.map((alt) => (
+						<article key={alt.id} className="alt-item">
+							<div className="item-header">
+								<h3>{alt.title}</h3>
+								<div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+									{alt.co2AvoidedKgWeekly > 0 && (
+										<span className="impact-pill">
+											-{alt.co2AvoidedKgWeekly} kg CO2 / week
+										</span>
+									)}
+									{alt.pm25AvoidedGramsWeekly > 0 && (
+										<span className="impact-pill">
+											-{alt.pm25AvoidedGramsWeekly} g PM2.5 / week
+										</span>
+									)}
+									{alt.indoorPm25ReductionPct > 0 && (
+										<span className="impact-pill">
+											-{alt.indoorPm25ReductionPct}% Indoor PM2.5
+										</span>
+									)}
+								</div>
+							</div>
+
+							<div style={{ fontSize: "0.9rem", marginBottom: "0.5rem" }}>
+								<span style={{ color: "var(--text-muted)" }}>Current choice:</span>{" "}
+								<strong>{alt.currentOption}</strong> →{" "}
+								<span style={{ color: "var(--text-muted)" }}>Clean alternative:</span>{" "}
+								<strong>{alt.proposedOption}</strong>
+							</div>
+
+							<p style={{ fontSize: "0.9rem", marginBottom: "0.5rem" }}>
+								{alt.rationale}
+							</p>
+
+							<p style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+								<em>Source & Evidence: {alt.scientificBasis}</em>
+							</p>
+						</article>
+					))}
+				</div>
+			</div>
+		</section>
+	);
+}

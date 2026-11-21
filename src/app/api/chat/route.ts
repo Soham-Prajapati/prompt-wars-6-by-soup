@@ -1,0 +1,66 @@
+/**
+ * POST /api/chat
+ *
+ * Grounded conversational Q&A assistant for the family. Answers questions strictly
+ * based on the structured CleanAirPlan. If GEMINI_API_KEY is not configured or fails,
+ * delivers deterministic answers derived from the plan.
+ */
+
+import { z } from "zod";
+import { handle, jsonOk, readJsonBody } from "@/lib/api";
+import { generateDeterministicChatResponse } from "@/lib/fallback";
+import { generateText, isGeminiConfigured } from "@/lib/gemini";
+import { buildChatPrompt, SYSTEM_GROUNDING_INSTRUCTION } from "@/lib/prompt";
+import { enforceRateLimit, extractClientIp } from "@/lib/rate-limit";
+import type { CleanAirPlan } from "@/lib/types";
+import {
+	chatMessageSchema,
+	householdProfileSchema,
+	supportedLanguageSchema,
+} from "@/lib/validation";
+
+const chatEndpointSchema = z.object({
+	question: z.string().trim().min(1).max(400),
+	profile: householdProfileSchema,
+	plan: z.custom<CleanAirPlan>(),
+	language: supportedLanguageSchema.default("en"),
+	history: z.array(chatMessageSchema).max(10).optional().default([]),
+});
+
+export async function POST(request: Request): Promise<Response> {
+	return handle(async () => {
+		const ip = extractClientIp(request);
+		enforceRateLimit(ip, "chat");
+
+		const raw = await readJsonBody(request);
+		const { question, profile, plan, language } = chatEndpointSchema.parse(raw);
+
+		if (!isGeminiConfigured()) {
+			const reply = generateDeterministicChatResponse(question, plan, profile);
+			return jsonOk({
+				answer: reply,
+				source: "fallback",
+			});
+		}
+
+		try {
+			const prompt = buildChatPrompt(profile, plan, question, language);
+			const generated = await generateText(prompt, SYSTEM_GROUNDING_INSTRUCTION);
+
+			if (generated.length === 0) {
+				throw new Error("Empty model response");
+			}
+
+			return jsonOk({
+				answer: generated,
+				source: "ai",
+			});
+		} catch {
+			const reply = generateDeterministicChatResponse(question, plan, profile);
+			return jsonOk({
+				answer: reply,
+				source: "fallback",
+			});
+		}
+	});
+}
