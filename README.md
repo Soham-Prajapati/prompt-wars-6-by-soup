@@ -39,7 +39,7 @@ flowchart LR
     F --> U
 ```
 
-The browser sends a validated location/profile to `/api/plan`. The server fetches current pollutants and a two-day hourly forecast from Open-Meteo, validates that upstream response, caches it by rounded coordinates, and computes the plan. Briefing and chat are explicit user actions. Their routes validate the whole plan and profile again, put facts inside `<household_facts>`, delimit user text as untrusted data, and cap Gemini output. A missing key, timeout, empty response, or failed retry returns a deterministic response instead.
+The browser sends a validated location/profile to `/api/plan`. The server fetches current pollutants and a two-day hourly forecast from Open-Meteo, validates that upstream response, caches it by rounded coordinates, and computes the plan. Briefing and chat are explicit user actions. Their routes validate the whole plan and profile again, put facts inside `<household_facts>`, delimit user text as untrusted data, and cap Gemini output. Gemini tries the configured `GEMINI_MODEL` first, then verified lightweight fallbacks, moving on after a 404, 429, 5xx, timeout, or empty response. A missing key or exhausted model chain returns a deterministic response instead.
 
 Data sources are Open-Meteo Geocoding and Air Quality APIs (keyless), EPA AQI breakpoints in `src/lib/aqi.ts`, and the named source assumptions documented beside constants in `src/lib/impact.ts` and `src/lib/hacks.ts`.
 
@@ -115,4 +115,4 @@ npm audit
 | Variable | Required | Description |
 | --- | --- | --- |
 | `GEMINI_API_KEY` | No | Server-only Google Gemini key. Blank uses deterministic briefings and chat. |
-| `GEMINI_MODEL` | No | Gemini model name; defaults to `gemini-2.5-flash`. |
+| `GEMINI_MODEL` | No | First Gemini model to try. If unset, the chain is `gemini-3.1-flash-lite` → `gemini-3.5-flash-lite`; unavailable models are skipped. |

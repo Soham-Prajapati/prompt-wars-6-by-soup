@@ -7,9 +7,9 @@
  *
  * Security and reliability features:
  * - API key read strictly from server-side `GEMINI_API_KEY`
- * - Model configured via `GEMINI_MODEL` (defaults to `gemini-2.5-flash`)
- * - In-flight timeout via Promise.race (8 seconds)
- * - Single automatic retry on transient upstream failures
+ * - Ordered model chain, with `GEMINI_MODEL` taking priority when configured
+ * - Per-model timeout and no SDK-level retry amplification
+ * - Automatic failover on unavailable, rate-limited, transient, or empty responses
  * - Output token cap to prevent runaway token usage
  * - Clean degradation: callers fall back to deterministic templating when unconfigured or unreachable.
  */
@@ -17,8 +17,17 @@
 import { GoogleGenAI } from "@google/genai";
 import { GeminiUnavailableError } from "@/lib/api";
 
-export const DEFAULT_MODEL_NAME = "gemini-2.5-flash";
-export const DEFAULT_TIMEOUT_MS = 8000;
+/**
+ * Models verified to answer text generation requests for the current deployment key.
+ * Keep this list short: one configured model plus these two attempts must stay below
+ * the route's latency budget even when an upstream model hangs.
+ */
+export const DEFAULT_MODEL_CHAIN = [
+	"gemini-3.1-flash-lite",
+	"gemini-3.5-flash-lite",
+] as const;
+export const DEFAULT_MODEL_NAME = DEFAULT_MODEL_CHAIN[0];
+export const DEFAULT_TIMEOUT_MS = 6000;
 export const MAX_OUTPUT_TOKENS = 800;
 
 let cachedClient: GoogleGenAI | null = null;
@@ -31,14 +40,24 @@ export function isGeminiConfigured(): boolean {
 	return typeof key === "string" && key.trim().length > 0;
 }
 
-/**
- * Retrieve the active model name.
- */
-export function getModelName(): string {
+/** Return the configured model, if any, without exposing its value. */
+function getConfiguredModel(): string | undefined {
 	const envModel = process.env["GEMINI_MODEL"];
-	return typeof envModel === "string" && envModel.trim().length > 0
-		? envModel.trim()
-		: DEFAULT_MODEL_NAME;
+	return typeof envModel === "string" && envModel.trim().length > 0 ? envModel.trim() : undefined;
+}
+
+/**
+ * Build the ordered model chain. A custom model is tried first, then the verified
+ * lightweight fallbacks; duplicate names are removed while preserving order.
+ */
+export function getModelChain(): readonly string[] {
+	const configuredModel = getConfiguredModel();
+	return [...new Set([...(configuredModel !== undefined ? [configuredModel] : []), ...DEFAULT_MODEL_CHAIN])];
+}
+
+/** Retrieve the first model that would be attempted. */
+export function getModelName(): string {
+	return getModelChain()[0] ?? DEFAULT_MODEL_NAME;
 }
 
 /**
@@ -56,13 +75,77 @@ function getClient(): GoogleGenAI | null {
 	return cachedClient;
 }
 
+function getErrorStatus(error: unknown): number | undefined {
+	if (typeof error !== "object" || error === null || !("status" in error)) {
+		return undefined;
+	}
+
+	const status = error.status;
+	return typeof status === "number" ? status : undefined;
+}
+
+/** Move on for model-specific availability failures and client-side timeouts. */
+function shouldTryNextModel(error: unknown): boolean {
+	const status = getErrorStatus(error);
+	if (status !== undefined) {
+		return status === 404 || status === 429 || status >= 500;
+	}
+
+	// Network failures and SDK timeout errors do not always expose an HTTP status.
+	return true;
+}
+
+/** Execute one model attempt with a bounded timeout and no hidden SDK retries. */
+async function generateWithModel(
+	client: GoogleGenAI,
+	model: string,
+	prompt: string,
+	systemInstruction?: string,
+): Promise<string> {
+	const controller = new AbortController();
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	const timeoutPromise = new Promise<never>((_, reject) => {
+		timer = setTimeout(() => {
+			controller.abort();
+			reject(new Error("Gemini API request timed out"));
+		}, DEFAULT_TIMEOUT_MS);
+	});
+
+	try {
+		const generatePromise = client.models.generateContent({
+			model,
+			contents: prompt,
+			config: {
+				maxOutputTokens: MAX_OUTPUT_TOKENS,
+				httpOptions: {
+					timeout: DEFAULT_TIMEOUT_MS,
+					retryOptions: { attempts: 1 },
+				},
+				abortSignal: controller.signal,
+				...(systemInstruction !== undefined ? { systemInstruction } : {}),
+			},
+		});
+
+		const response = await Promise.race([generatePromise, timeoutPromise]);
+		const text = response.text?.trim() ?? "";
+		if (text.length === 0) {
+			throw new Error("Gemini returned an empty response");
+		}
+		return text;
+	} finally {
+		if (timer !== undefined) {
+			clearTimeout(timer);
+		}
+	}
+}
+
 /**
- * Execute generation with timeout and single transient retry.
+ * Generate grounded text through the ordered model chain.
  *
  * @param prompt The complete user content payload.
  * @param systemInstruction System instruction string establishing grounding boundaries.
  * @returns Generated plain text string.
- * @throws {GeminiUnavailableError} When no API key is present or calls exhaust retries.
+ * @throws {GeminiUnavailableError} When no key is present or every model attempt fails.
  */
 export async function generateText(
 	prompt: string,
@@ -73,47 +156,21 @@ export async function generateText(
 		throw new GeminiUnavailableError();
 	}
 
-	const model = getModelName();
-
-	const runWithTimeout = async (): Promise<string> => {
-		const generatePromise = client.models.generateContent({
-			model,
-			contents: prompt,
-			config: {
-				maxOutputTokens: MAX_OUTPUT_TOKENS,
-				...(systemInstruction !== undefined ? { systemInstruction } : {}),
-			},
-		});
-
-		let timer: NodeJS.Timeout | undefined;
-		const timeoutPromise = new Promise<never>((_, reject) => {
-			timer = setTimeout(() => {
-				reject(new Error("Gemini API request timed out"));
-			}, DEFAULT_TIMEOUT_MS);
-		});
-
+	let lastError: unknown;
+	for (const model of getModelChain()) {
 		try {
-			const res = await Promise.race([generatePromise, timeoutPromise]);
-			return res.text?.trim() ?? "";
-		} finally {
-			if (timer !== undefined) {
-				clearTimeout(timer);
+			return await generateWithModel(client, model, prompt, systemInstruction);
+		} catch (error) {
+			lastError = error;
+			if (!shouldTryNextModel(error)) {
+				break;
 			}
 		}
-	};
-
-	try {
-		return await runWithTimeout();
-	} catch (err) {
-		// Transient single retry on failure
-		try {
-			return await runWithTimeout();
-		} catch {
-			throw new GeminiUnavailableError(
-				err instanceof Error ? err.message : "Gemini service unavailable",
-			);
-		}
 	}
+
+	throw new GeminiUnavailableError(
+		lastError instanceof Error ? lastError.message : "Gemini service unavailable",
+	);
 }
 
 /**
