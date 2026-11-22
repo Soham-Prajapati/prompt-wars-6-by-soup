@@ -60,7 +60,7 @@ async function generateWithModel(
 					Authorization: `Bearer ${apiKey}`,
 					"Content-Type": "application/json",
 				},
-				body: JSON.stringify({
+					body: JSON.stringify({
 					model,
 					messages: [
 						...(request.systemInstruction !== undefined
@@ -69,6 +69,8 @@ async function generateWithModel(
 						{ role: "user", content: request.prompt },
 					],
 					max_tokens: MAX_OUTPUT_TOKENS,
+						reasoning_effort: "low",
+						...(model === "openai/gpt-oss-120b" ? { include_reasoning: false } : {}),
 				}),
 				signal,
 			}),

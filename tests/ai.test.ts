@@ -120,7 +120,28 @@ describe("Groq provider", () => {
 				{ role: "system", content: "Use only facts." },
 				{ role: "user", content: "<household_facts>facts</household_facts>" },
 			],
-			max_tokens: 800,
+			max_tokens: 1200,
+			reasoning_effort: "low",
+		});
+	});
+
+	it("limits reasoning and hides the reasoning trace for the gpt-oss model", async () => {
+		delete process.env["GROQ_MODEL"];
+		(globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+			ok: true,
+			status: 200,
+			json: () => Promise.resolve({ choices: [{ message: { content: "Answer with room left for reasoning." } }] }),
+		});
+
+		await expect(groqProvider.generate({ prompt: "facts" })).resolves.toMatchObject({
+			model: DEFAULT_GROQ_MODEL_CHAIN[0],
+		});
+		const [, init] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
+		expect(JSON.parse(init.body as string) as unknown).toMatchObject({
+			model: "openai/gpt-oss-120b",
+			max_tokens: 1200,
+			reasoning_effort: "low",
+			include_reasoning: false,
 		});
 	});
 

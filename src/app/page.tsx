@@ -35,7 +35,7 @@ export default function HomePage(): React.JSX.Element {
 	const [aiConfigured, setAiConfigured] = useState(false);
 	const [, startTransition] = useTransition();
 
-	// Check system health and whether Gemini key is set
+	// Check system health and whether the narration service is configured.
 	useEffect(() => {
 		fetch("/api/health")
 			.then((res) => res.json())
@@ -145,21 +145,9 @@ export default function HomePage(): React.JSX.Element {
 				)}
 			</main>
 
-			<footer
-				style={{
-					borderTop: "1px solid var(--border)",
-					marginTop: "3rem",
-					paddingTop: "1.5rem",
-					fontSize: "0.85rem",
-					color: "var(--text-muted)",
-					display: "flex",
-					flexDirection: "column",
-					gap: "0.5rem",
-				}}
-				role="contentinfo"
-			>
+			<footer className="footer-copy" role="contentinfo">
 				<div>
-					<strong>ClearAir</strong> — Built for PromptWars Challenge 6. Grounded deterministic science engine with Google Gemini GenAI narration.
+					<strong>ClearAir</strong> — Built for PromptWars Challenge 6. Grounded decision engine with optional AI narration.
 				</div>
 				<div>
 					Sources & Standards: EPA 40 CFR Part 58 (AQI Tables), WHO 2021 Global Air Quality Guidelines, UC Davis Corsi-Rosenthal Filtration Studies, FTA Greenhouse Gas Transit Factors.

@@ -1,4 +1,5 @@
 import React from "react";
+import { Icon } from "@/components/Icon";
 import type { RoutineSegment } from "@/lib/types";
 
 interface DailyRoutineProps {
@@ -10,11 +11,8 @@ export function DailyRoutine({ routine }: DailyRoutineProps): React.JSX.Element 
 	return (
 		<section className="section" aria-labelledby="routine-heading">
 			<div className="card">
-				<h2 id="routine-heading" className="section-title">
-					<span aria-hidden="true">🗓️</span>
-					<span>Timed Low-Emission Daily Routine</span>
-				</h2>
-				<p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: "1.25rem" }}>
+				<h2 id="routine-heading" className="section-title"><Icon name="calendar" /><span>Let the day have a rhythm</span></h2>
+				<p className="section-intro">
 					Synchronized with solar boundary layer height and roadway smog peaks to shield your family.
 				</p>
 
@@ -23,26 +21,11 @@ export function DailyRoutine({ routine }: DailyRoutineProps): React.JSX.Element 
 						<li key={seg.id} className="timeline-item">
 							<div className="timeline-time">
 								<div>{seg.timeSpan}</div>
-								<div style={{ marginTop: "0.35rem" }}>
-									<span
-										className="badge"
-										style={{
-											fontSize: "0.7rem",
-											backgroundColor: seg.outdoorActivityAllowed
-												? "var(--aqi-good)"
-												: "var(--surface-raised)",
-											color: seg.outdoorActivityAllowed
-												? "var(--accent-contrast)"
-												: "var(--text-muted)",
-										}}
-									>
-										{seg.outdoorActivityAllowed ? "Outdoor Allowed" : "Stay Indoors"}
-									</span>
-								</div>
+								<span className={`timeline-status ${seg.outdoorActivityAllowed ? "is-open" : "is-closed"}`}>{seg.outdoorActivityAllowed ? "Outdoor window" : "Stay indoors"}</span>
 							</div>
 
 							<div className="timeline-action">
-								<h3 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: "0.25rem" }}>
+								<h3>
 									{seg.label}
 								</h3>
 								<p>{seg.actionDescription}</p>

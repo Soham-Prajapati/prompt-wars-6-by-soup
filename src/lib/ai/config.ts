@@ -4,9 +4,11 @@
 export const DEFAULT_TIMEOUT_MS = 6000;
 
 /**
- * Shared maximum generated-token budget for Gemini and Groq.
+ * Shared maximum generated-token budget for Gemini and Groq. The extra headroom
+ * keeps reasoning-capable models from spending the entire response budget before
+ * they reach the user-facing answer.
  */
-export const MAX_OUTPUT_TOKENS = 800;
+export const MAX_OUTPUT_TOKENS = 1200;
 
 /**
  * Read a non-empty server-side environment variable.

@@ -1,4 +1,5 @@
 import React from "react";
+import { Icon } from "@/components/Icon";
 import type { SustainableAlternative } from "@/lib/types";
 
 interface AlternativesListProps {
@@ -16,11 +17,8 @@ export function AlternativesList({
 	return (
 		<section className="section" aria-labelledby="alts-heading">
 			<div className="card">
-				<h2 id="alts-heading" className="section-title">
-					<span aria-hidden="true">🌱</span>
-					<span>Sustainable Alternatives & Quantified Impact</span>
-				</h2>
-				<p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: "1.25rem" }}>
+				<h2 id="alts-heading" className="section-title"><Icon name="leaf" /><span>Cleaner alternatives, counted</span></h2>
+				<p className="section-intro">
 					Direct emissions avoided by transitioning commute, cooking, or heating to clean alternatives.
 				</p>
 
@@ -29,37 +27,37 @@ export function AlternativesList({
 						<article key={alt.id} className="alt-item">
 							<div className="item-header">
 								<h3>{alt.title}</h3>
-								<div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+								<div className="item-metrics">
 									{alt.co2AvoidedKgWeekly > 0 && (
-										<span className="impact-pill">
+										<span className="impact-number">
 											-{alt.co2AvoidedKgWeekly} kg CO2 / week
 										</span>
 									)}
 									{alt.pm25AvoidedGramsWeekly > 0 && (
-										<span className="impact-pill">
+										<span className="impact-number">
 											-{alt.pm25AvoidedGramsWeekly} g PM2.5 / week
 										</span>
 									)}
 									{alt.indoorPm25ReductionPct > 0 && (
-										<span className="impact-pill">
+										<span className="impact-number">
 											-{alt.indoorPm25ReductionPct}% Indoor PM2.5
 										</span>
 									)}
 								</div>
 							</div>
 
-							<div style={{ fontSize: "0.9rem", marginBottom: "0.5rem" }}>
+							<div className="choice-line">
 								<span style={{ color: "var(--text-muted)" }}>Current choice:</span>{" "}
 								<strong>{alt.currentOption}</strong> →{" "}
 								<span style={{ color: "var(--text-muted)" }}>Clean alternative:</span>{" "}
 								<strong>{alt.proposedOption}</strong>
 							</div>
 
-							<p style={{ fontSize: "0.9rem", marginBottom: "0.5rem" }}>
+							<p className="item-summary">
 								{alt.rationale}
 							</p>
 
-							<p style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+							<p className="evidence-line">
 								<em>Source & Evidence: {alt.scientificBasis}</em>
 							</p>
 						</article>

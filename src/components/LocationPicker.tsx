@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { Icon } from "@/components/Icon";
 import { searchLocationsClient } from "@/lib/client";
 import type { GeoLocation } from "@/lib/types";
 
@@ -11,11 +12,7 @@ interface LocationPickerProps {
 }
 
 /** Provide city search and browser-geolocation controls. */
-export function LocationPicker({
-	currentLocation,
-	onLocationSelect,
-	isLoading,
-}: LocationPickerProps): React.JSX.Element {
+export function LocationPicker({ currentLocation, onLocationSelect, isLoading }: LocationPickerProps): React.JSX.Element {
 	const [query, setQuery] = useState("");
 	const [results, setResults] = useState<readonly GeoLocation[]>([]);
 	const [isSearching, setIsSearching] = useState(false);
@@ -30,9 +27,7 @@ export function LocationPicker({
 		try {
 			const found = await searchLocationsClient(query);
 			setResults(found);
-			if (found.length === 0) {
-				setError("No matching cities found. Please try another name.");
-			}
+			if (found.length === 0) setError("No matching cities found. Please try another name.");
 		} catch {
 			setError("Failed to search location. Please check your connection.");
 		} finally {
@@ -48,18 +43,9 @@ export function LocationPicker({
 
 		setIsSearching(true);
 		setError(null);
-
 		navigator.geolocation.getCurrentPosition(
 			(pos) => {
-				const loc: GeoLocation = {
-					id: 999999,
-					name: "My Current Location",
-					country: "Local Area",
-					latitude: pos.coords.latitude,
-					longitude: pos.coords.longitude,
-					timezone: "auto",
-				};
-				onLocationSelect(loc);
+				onLocationSelect({ id: 999999, name: "My Current Location", country: "Local Area", latitude: pos.coords.latitude, longitude: pos.coords.longitude, timezone: "auto" });
 				setResults([]);
 				setIsSearching(false);
 			},
@@ -74,80 +60,24 @@ export function LocationPicker({
 	return (
 		<section className="section" aria-labelledby="location-heading">
 			<div className="card">
-				<h2 id="location-heading" className="section-title">
-					<span aria-hidden="true">📍</span>
-					<span>Location: {currentLocation.name}, {currentLocation.country}</span>
-				</h2>
+				<h2 id="location-heading" className="section-title"><Icon name="pin" /><span>Location: {currentLocation.name}, {currentLocation.country}</span></h2>
+				<p className="section-intro">Start with the place your family will move through today.</p>
 
-				<form onSubmit={(e) => void handleSearch(e)} className="form-control" role="search">
-					<label htmlFor="city-search">Search City or Urban Area</label>
-					<div style={{ display: "flex", gap: "0.5rem" }}>
-						<input
-							id="city-search"
-							type="text"
-							value={query}
-							onChange={(e) => {
-								setQuery(e.target.value);
-							}}
-							placeholder="e.g. New Delhi, London, Beijing, Chicago..."
-							disabled={isLoading || isSearching}
-							style={{ flex: 1 }}
-						/>
-						<button
-							type="submit"
-							className="btn btn-primary"
-							disabled={isLoading || isSearching || query.trim().length < 2}
-						>
-							{isSearching ? "Searching..." : "Find"}
-						</button>
-						<button
-							type="button"
-							className="btn btn-secondary"
-							onClick={handleGeolocation}
-							disabled={isLoading || isSearching}
-							title="Use my device GPS location"
-						>
-							<span aria-hidden="true">🎯</span>
-							<span className="sr-only">Use GPS location</span>
-						</button>
+				<form onSubmit={(e) => void handleSearch(e)} className="location-form" role="search">
+					<label htmlFor="city-search">Search city or urban area</label>
+					<div className="location-controls">
+						<input id="city-search" data-testid="city-search-input" type="text" value={query} onChange={(e) => { setQuery(e.target.value); }} placeholder="New Delhi, London, Beijing..." disabled={isLoading || isSearching} />
+						<button type="submit" className="btn btn-primary" data-testid="find-city-button" disabled={isLoading || isSearching || query.trim().length < 2}><Icon name="search" size={16} /><span>{isSearching ? "Searching" : "Find"}</span></button>
+						<button type="button" className="btn btn-secondary icon-button" onClick={handleGeolocation} disabled={isLoading || isSearching} title="Use my device GPS location"><Icon name="target" size={17} /><span className="sr-only">Use GPS location</span></button>
 					</div>
 				</form>
 
 				<div aria-live="polite" aria-atomic="true">
-					{error !== null && (
-						<p role="alert" style={{ color: "var(--aqi-unhealthy)", fontSize: "0.85rem", marginTop: "0.5rem" }}>
-							{error}
-						</p>
-					)}
-
+					{error !== null && <p role="alert" className="form-message form-message-error">{error}</p>}
 					{results.length > 0 && (
-						<ul
-							style={{
-								marginTop: "0.75rem",
-								display: "flex",
-								flexDirection: "column",
-								gap: "0.35rem",
-							}}
-						>
+						<ul className="location-results">
 							{results.map((loc) => (
-								<li key={loc.id}>
-									<button
-										type="button"
-										className="btn btn-secondary"
-										style={{ width: "100%", justifyContent: "flex-start", textAlign: "left" }}
-										onClick={() => {
-											onLocationSelect(loc);
-											setResults([]);
-											setQuery("");
-										}}
-									>
-										<span>🏙️</span>
-										<span>
-											<strong>{loc.name}</strong>
-											{loc.admin1 !== undefined ? `, ${loc.admin1}` : ""}, {loc.country}
-										</span>
-									</button>
-								</li>
+								<li key={loc.id}><button type="button" className="location-result" onClick={() => { onLocationSelect(loc); setResults([]); setQuery(""); }}><Icon name="pin" size={16} /><span><strong>{loc.name}</strong>{loc.admin1 !== undefined ? `, ${loc.admin1}` : ""}, {loc.country}</span></button></li>
 							))}
 						</ul>
 					)}

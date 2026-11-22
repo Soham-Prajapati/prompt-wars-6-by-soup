@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { Icon } from "@/components/Icon";
 import type {
 	CommuteMode,
 	CookingFuel,
@@ -32,9 +33,9 @@ export function ProfileForm({
 	return (
 		<section className="section" aria-labelledby="profile-heading">
 			<div className="card">
-				<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+				<div className="section-heading-row">
 					<h2 id="profile-heading" className="section-title">
-						<span aria-hidden="true">👨‍👩‍👧‍👦</span>
+						<Icon name="family" />
 						<span>Household & Lifestyle Profile</span>
 					</h2>
 					<button
@@ -50,7 +51,7 @@ export function ProfileForm({
 					</button>
 				</div>
 
-				<p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginTop: "0.25rem" }}>
+				<p className="section-intro">
 					ClearAir personalizes its health risk warnings, indoor hacks, and routine to your exact household composition.
 				</p>
 
@@ -58,7 +59,7 @@ export function ProfileForm({
 					<form
 						id="profile-form-content"
 						onSubmit={handleSubmit}
-						style={{ marginTop: "1.25rem" }}
+						className="profile-form"
 					>
 						<div className="form-grid">
 							{/* Family Demographics */}
@@ -69,6 +70,7 @@ export function ProfileForm({
 									<label htmlFor="childrenUnder12">Children under 12</label>
 									<input
 										id="childrenUnder12"
+										data-testid="childrenUnder12"
 										type="number"
 										min={0}
 										max={10}
@@ -86,6 +88,7 @@ export function ProfileForm({
 									<label htmlFor="adultsOver65">Adults over 65</label>
 									<input
 										id="adultsOver65"
+										data-testid="adultsOver65"
 										type="number"
 										min={0}
 										max={10}
@@ -102,6 +105,7 @@ export function ProfileForm({
 								<div className="form-control">
 									<label className="checkbox-control">
 										<input
+											data-testid="pregnant"
 											type="checkbox"
 											checked={profile.pregnant}
 											onChange={(e) => {
@@ -115,6 +119,7 @@ export function ProfileForm({
 								<div className="form-control">
 									<label className="checkbox-control">
 										<input
+											data-testid="respiratoryCondition"
 											type="checkbox"
 											checked={profile.respiratoryCondition}
 											onChange={(e) => {
@@ -131,6 +136,7 @@ export function ProfileForm({
 								<div className="form-control">
 									<label className="checkbox-control">
 										<input
+											data-testid="outdoorWorker"
 											type="checkbox"
 											checked={profile.outdoorWorker}
 											onChange={(e) => {
@@ -153,6 +159,7 @@ export function ProfileForm({
 									<label htmlFor="commuteMode">Primary Transit Mode</label>
 									<select
 										id="commuteMode"
+										data-testid="commuteMode"
 										value={profile.commuteMode}
 										onChange={(e) => {
 											setProfile({
@@ -175,6 +182,7 @@ export function ProfileForm({
 									<label htmlFor="commuteDistanceKm">Daily Commute Distance (km roundtrip)</label>
 									<input
 										id="commuteDistanceKm"
+										data-testid="commuteDistanceKm"
 										type="number"
 										min={1}
 										max={150}
@@ -192,6 +200,7 @@ export function ProfileForm({
 									<label htmlFor="homeType">Home Structure Type</label>
 									<select
 										id="homeType"
+										data-testid="homeType"
 										value={profile.homeType}
 										onChange={(e) => {
 											setProfile({
@@ -215,6 +224,7 @@ export function ProfileForm({
 									<label htmlFor="cookingFuel">Cooking Fuel Source</label>
 									<select
 										id="cookingFuel"
+										data-testid="cookingFuel"
 										value={profile.cookingFuel}
 										onChange={(e) => {
 											setProfile({
@@ -234,6 +244,7 @@ export function ProfileForm({
 									<label htmlFor="heating">Winter Space Heating</label>
 									<select
 										id="heating"
+										data-testid="heating"
 										value={profile.heating}
 										onChange={(e) => {
 											setProfile({
@@ -253,6 +264,7 @@ export function ProfileForm({
 								<div className="form-control">
 									<label className="checkbox-control">
 										<input
+											data-testid="hasAirPurifier"
 											type="checkbox"
 											checked={profile.hasAirPurifier}
 											onChange={(e) => {
@@ -269,6 +281,7 @@ export function ProfileForm({
 								<div className="form-control">
 									<label className="checkbox-control">
 										<input
+											data-testid="hasN95Masks"
 											type="checkbox"
 											checked={profile.hasN95Masks}
 											onChange={(e) => {
@@ -285,6 +298,7 @@ export function ProfileForm({
 								<div className="form-control">
 									<label className="checkbox-control">
 										<input
+											data-testid="smokerInHouse"
 											type="checkbox"
 											checked={profile.smokerInHouse}
 											onChange={(e) => {
@@ -300,8 +314,8 @@ export function ProfileForm({
 							</fieldset>
 						</div>
 
-						<div style={{ marginTop: "1rem", display: "flex", justifyContent: "flex-end" }}>
-							<button type="submit" className="btn btn-primary" disabled={isLoading}>
+						<div className="form-actions">
+							<button type="submit" className="btn btn-primary" data-testid="profile-apply-button" disabled={isLoading}>
 								{isLoading ? "Recalculating..." : "Apply & Update Routine"}
 							</button>
 						</div>

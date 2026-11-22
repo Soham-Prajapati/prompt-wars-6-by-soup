@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import { Icon } from "@/components/Icon";
+import { MarkdownRenderer } from "@/lib/markdown";
 import { fetchBriefing, sendChatMessage, type ChatMessage } from "@/lib/client";
 import { LANGUAGE_LABELS } from "@/lib/prompt";
 import type { CleanAirPlan, HouseholdProfile, SupportedLanguage } from "@/lib/types";
@@ -17,8 +19,6 @@ export function AiBriefing({ plan, profile }: AiBriefingProps): React.JSX.Elemen
 	const [briefingSource, setBriefingSource] = useState<"ai" | "fallback" | null>(null);
 	const [isBriefingLoading, setIsBriefingLoading] = useState(false);
 	const [briefingError, setBriefingError] = useState<string | null>(null);
-
-	// Chat state
 	const [messages, setMessages] = useState<readonly ChatMessage[]>([]);
 	const [inputQuestion, setInputQuestion] = useState("");
 	const [isChatLoading, setIsChatLoading] = useState(false);
@@ -41,9 +41,7 @@ export function AiBriefing({ plan, profile }: AiBriefingProps): React.JSX.Elemen
 	const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
 		const newLang = e.target.value as SupportedLanguage;
 		setLanguage(newLang);
-		if (briefingText !== null) {
-			void handleGenerateBriefing(newLang);
-		}
+		if (briefingText !== null) void handleGenerateBriefing(newLang);
 	};
 
 	const handleSendQuestion = async (e: React.SyntheticEvent): Promise<void> => {
@@ -57,11 +55,9 @@ export function AiBriefing({ plan, profile }: AiBriefingProps): React.JSX.Elemen
 		setInputQuestion("");
 		setIsChatLoading(true);
 		setChatError(null);
-
 		try {
 			const res = await sendChatMessage(q, plan, profile, language, nextHistory);
-			const assistantMsg: ChatMessage = { role: "assistant", content: res.answer };
-			setMessages([...nextHistory, assistantMsg]);
+			setMessages([...nextHistory, { role: "assistant", content: res.answer }]);
 		} catch {
 			setChatError("Unable to get an answer right now. Please try again.");
 		} finally {
@@ -71,136 +67,50 @@ export function AiBriefing({ plan, profile }: AiBriefingProps): React.JSX.Elemen
 
 	return (
 		<section className="section" aria-labelledby="ai-briefing-heading">
-			<div className="card">
-				<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem", marginBottom: "1rem" }}>
-					<h2 id="ai-briefing-heading" className="section-title" style={{ margin: 0 }}>
-						<span aria-hidden="true">🤖</span>
-						<span>Family Air Quality Briefing & Copilot</span>
-					</h2>
-
-					<div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-						<label htmlFor="language-select" style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
-							Language:
-						</label>
-						<select
-							id="language-select"
-							value={language}
-							onChange={handleLanguageChange}
-							style={{
-								background: "var(--surface-raised)",
-								border: "1px solid var(--border-strong)",
-								borderRadius: "var(--radius-sm)",
-								padding: "0.35rem 0.6rem",
-								fontSize: "0.85rem",
-							}}
-						>
-							{(Object.keys(LANGUAGE_LABELS) as SupportedLanguage[]).map((code) => (
-								<option key={code} value={code}>
-									{LANGUAGE_LABELS[code]}
-								</option>
-							))}
+			<div className="card briefing-panel">
+				<div className="section-heading-row briefing-heading">
+					<div>
+						<h2 id="ai-briefing-heading" className="section-title"><Icon name="spark" /><span>Family air briefing</span></h2>
+						<p className="section-intro">A plain-language read of today&rsquo;s conditions, tailored to your household.</p>
+					</div>
+					<div className="briefing-actions">
+						<label htmlFor="language-select">Language</label>
+						<select id="language-select" data-testid="language-select" value={language} onChange={handleLanguageChange}>
+							{(Object.keys(LANGUAGE_LABELS) as SupportedLanguage[]).map((code) => <option key={code} value={code}>{LANGUAGE_LABELS[code]}</option>)}
 						</select>
-
-						<button
-							type="button"
-							className="btn btn-primary"
-							style={{ fontSize: "0.85rem", padding: "0.35rem 0.85rem" }}
-							onClick={() => void handleGenerateBriefing()}
-							disabled={isBriefingLoading}
-						>
-							{isBriefingLoading
-								? "Generating..."
-								: briefingText === null
-									? "Generate Daily Briefing"
-									: "Refresh Briefing"}
+						<button type="button" className="btn btn-primary" data-testid="generate-briefing-button" onClick={() => void handleGenerateBriefing()} disabled={isBriefingLoading}>
+							<Icon name="spark" size={16} /><span>{isBriefingLoading ? "Generating" : briefingText === null ? "Generate briefing" : "Refresh briefing"}</span>
 						</button>
 					</div>
 				</div>
 
 				<div aria-live="polite" aria-busy={isBriefingLoading}>
-					{briefingError !== null && (
-						<p style={{ color: "var(--aqi-unhealthy)", fontSize: "0.85rem", marginBottom: "1rem" }}>
-							{briefingError}
-						</p>
-					)}
-
+					{briefingError !== null && <p className="form-message form-message-error">{briefingError}</p>}
 					{briefingText !== null && (
-						<div
-							style={{
-								background: "var(--surface-raised)",
-								border: "1px solid var(--border)",
-								borderRadius: "var(--radius-sm)",
-								padding: "1.25rem",
-								marginBottom: "1.5rem",
-								whiteSpace: "pre-line",
-								lineHeight: 1.6,
-							}}
-						>
-							<div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.5rem" }}>
-								<span className="badge" style={{ fontSize: "0.75rem" }}>
-									{briefingSource === "ai"
-										? "✨ Gemini AI Generated"
-										: "📋 Deterministic Science Guide"}
-								</span>
-							</div>
-							<div>{briefingText}</div>
+						<div className="briefing-copy">
+							<div className="briefing-meta"><span className="status-dot is-connected" aria-hidden="true" />{briefingSource === "ai" ? "AI narration" : "Science guide"}</div>
+							<MarkdownRenderer content={briefingText} className="markdown-content" />
 						</div>
 					)}
 				</div>
 
-				{/* Interactive Follow-up Chat */}
 				<div className="chat-box">
-					<h3 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: "0.75rem" }}>
-						Ask Follow-up Questions (Grounded strictly in your air data)
-					</h3>
-
+					<div className="chat-heading"><h3>Ask a follow-up</h3><span>Grounded in your computed plan</span></div>
 					<div className="chat-messages" role="log" aria-live="polite">
-						{messages.length === 0 ? (
-							<p style={{ color: "var(--text-muted)", fontSize: "0.85rem", fontStyle: "italic" }}>
-								Ask anything about your routine: &ldquo;When should my children avoid outdoors?&rdquo;, &ldquo;Which mask should I buy?&rdquo;, &ldquo;How much does wet mopping help?&rdquo;
-							</p>
-						) : (
-							messages.map((m, idx) => (
-								<div
-									key={idx}
-									className={`chat-bubble ${m.role}`}
-								>
-									<strong>{m.role === "user" ? "You" : "ClearAir"}:</strong> {m.content}
-								</div>
-							))
-						)}
-						{isChatLoading && (
-							<div className="chat-bubble assistant" style={{ fontStyle: "italic" }}>
-								ClearAir is reviewing the computed facts...
+						{messages.length === 0 ? <p className="chat-empty">Try: “When should my children avoid outdoors?”</p> : messages.map((message, index) => (
+							<div key={`${message.role}-${String(index)}`} className={`chat-bubble ${message.role}`}>
+								<strong>{message.role === "user" ? "You" : "ClearAir"}</strong>
+								{message.role === "assistant" ? <MarkdownRenderer content={message.content} className="markdown-content" /> : <p>{message.content}</p>}
 							</div>
-						)}
+						))}
+						{isChatLoading && <div className="chat-bubble assistant" aria-label="ClearAir is thinking"><em>Reviewing the computed facts...</em></div>}
 					</div>
-
 					<form onSubmit={(e) => void handleSendQuestion(e)} className="chat-input-row">
-						<input
-							type="text"
-							value={inputQuestion}
-							onChange={(e) => {
-								setInputQuestion(e.target.value);
-							}}
-							placeholder="Type your question about air quality or routine..."
-							disabled={isChatLoading}
-							aria-label="Ask a question about the plan"
-						/>
-						<button
-							type="submit"
-							className="btn btn-primary"
-							disabled={isChatLoading || inputQuestion.trim().length === 0}
-						>
-							Send
-						</button>
+						<label className="sr-only" htmlFor="chat-input">Ask a question about the plan</label>
+						<input id="chat-input" data-testid="chat-input" type="text" value={inputQuestion} onChange={(e) => { setInputQuestion(e.target.value); }} placeholder="Ask about air quality, timing, or routines..." disabled={isChatLoading} />
+						<button type="submit" className="btn btn-primary" data-testid="chat-send-button" disabled={isChatLoading || inputQuestion.trim().length === 0}><Icon name="send" size={16} /><span>Send</span></button>
 					</form>
-
-					{chatError !== null && (
-						<p role="alert" style={{ color: "var(--aqi-unhealthy)", fontSize: "0.8rem", marginTop: "0.5rem" }}>
-							{chatError}
-						</p>
-					)}
+					{chatError !== null && <p role="alert" className="form-message form-message-error">{chatError}</p>}
 				</div>
 			</div>
 		</section>
