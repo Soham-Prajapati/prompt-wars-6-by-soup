@@ -13,10 +13,21 @@ function toneForBand(code: string): string {
 	return code === "unhealthy_sensitive" ? "sensitive" : code.replaceAll("_", "-");
 }
 
+const MIN_BAR_HEIGHT_PERCENT = 25;
+
+function relativeBarHeight(aqi: number, dayMin: number, dayMax: number): number {
+	if (dayMax <= dayMin) return 100;
+
+	const relativePosition = (aqi - dayMin) / (dayMax - dayMin);
+	return Math.min(100, Math.max(MIN_BAR_HEIGHT_PERCENT, Math.round(MIN_BAR_HEIGHT_PERCENT + relativePosition * (100 - MIN_BAR_HEIGHT_PERCENT))));
+}
+
 /** Present the forecast as a visual strip with a text-table alternative. */
 export function ForecastStrip({ forecast, bestWindow }: ForecastStripProps): React.JSX.Element {
 	const [showTableView, setShowTableView] = useState(false);
-	const maxAqi = Math.max(...forecast.map((point) => point.usAqi), 1);
+	const aqiValues = forecast.map((point) => point.usAqi);
+	const dayMinAqi = aqiValues.length > 0 ? Math.min(...aqiValues) : 0;
+	const dayMaxAqi = aqiValues.length > 0 ? Math.max(...aqiValues) : 0;
 
 	return (
 		<section className="section" aria-labelledby="forecast-heading">
@@ -33,7 +44,7 @@ export function ForecastStrip({ forecast, bestWindow }: ForecastStripProps): Rea
 				) : (
 					<div className="forecast-scroll" role="region" aria-label="Hourly forecast strip">
 						{forecast.length === 0 ? <p className="empty-state">No hourly forecast is available yet.</p> : forecast.map((point) => {
-							const height = `${String(Math.max(14, Math.round((point.usAqi / maxAqi) * 100)))}%`;
+							const height = `${String(relativeBarHeight(point.usAqi, dayMinAqi, dayMaxAqi))}%`;
 							const tone = toneForBand(point.bandCode);
 							return <div key={point.timestamp} className={`forecast-column ${point.isBestWindow ? "is-best" : ""}`} title={`${point.hourLabel}: AQI ${String(point.usAqi)} (${point.bandLabel})`} aria-label={`${point.hourLabel}: AQI ${String(point.usAqi)}, ${point.bandLabel}${point.isBestWindow ? ", best outdoor window" : ""}`}><span className="forecast-hour">{point.hourLabel}</span><div className="forecast-track"><span className="forecast-bar" style={{ height, backgroundColor: `var(--aqi-${tone})` }} /></div><strong className="forecast-aqi">{point.usAqi}</strong>{point.isBestWindow && <span className="best-badge">Best</span>}</div>;
 			})}
