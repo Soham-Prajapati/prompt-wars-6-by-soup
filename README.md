@@ -1,12 +1,12 @@
 # ClearAir
 
-ClearAir is a family air-quality copilot for PromptWars Challenge 6. It combines live Open-Meteo data with a deterministic household decision engine, then optionally uses Gemini to explain the resulting plan.
+ClearAir is a family air-quality copilot for PromptWars Challenge 6. It combines live Open-Meteo data with a deterministic household decision engine, then optionally uses a grounded Gemini-first AI chain to explain the resulting plan.
 
 ## Chosen vertical
 
 > Create a GenAI-powered assistant that helps families and communities navigate severe winter smog and urban air pollution. The application should suggest low-emission daily routines, indoor air quality hacks, and sustainable alternatives tailored to their location and lifestyle, while clearly explaining the direct impact of their choices.
 
-The chosen vertical is a family and community winter-smog assistant. ClearAir is intentionally usable without an AI key: computed facts and the deterministic briefing remain available when Gemini is unavailable.
+The chosen vertical is a family and community winter-smog assistant. ClearAir is intentionally usable without an AI key: computed facts and the deterministic briefing remain available when every AI provider is unavailable.
 
 ## Approach and logic
 
@@ -32,14 +32,21 @@ flowchart LR
     E --> U[Daily briefing UI]
     U --> A[POST /api/briefing or /api/chat]
     A --> AV[Zod plan/context validation]
-    AV --> G{Gemini configured?}
-    G -->|yes| N[Grounded Gemini narration]
-    G -->|no or failure| F[Deterministic multilingual fallback]
+    AV --> AI[AI provider orchestrator]
+    AI --> G[Gemini model chain]
+    G -->|failure| Q[Groq model chain, if configured]
+    G -->|success| N[Grounded AI narration]
+    Q -->|success| N
+    AI -->|no provider or all failures| F[Deterministic multilingual fallback]
     N --> U
     F --> U
 ```
 
-The browser sends a validated location/profile to `/api/plan`. The server fetches current pollutants and a two-day hourly forecast from Open-Meteo, validates that upstream response, caches it by rounded coordinates, and computes the plan. Briefing and chat are explicit user actions. Their routes validate the whole plan and profile again, put facts inside `<household_facts>`, delimit user text as untrusted data, and cap Gemini output. Gemini tries the configured `GEMINI_MODEL` first, then verified lightweight fallbacks, moving on after a 404, 429, 5xx, timeout, or empty response. A missing key or exhausted model chain returns a deterministic response instead.
+The browser sends a validated location/profile to `/api/plan`. The server fetches current pollutants and a two-day hourly forecast from Open-Meteo, validates that upstream response, caches it by rounded coordinates, and computes the plan. Briefing and chat are explicit user actions. Their routes validate the whole plan and profile again, put facts inside `<household_facts>`, delimit user text as untrusted data, and cap provider output at 800 tokens. The orchestrator in `src/lib/ai/orchestrator.ts` tries Gemini's configured model plus verified fallbacks first; if that chain fails and `GROQ_API_KEY` is set, it tries Groq using its configured model, `openai/gpt-oss-120b`, and `qwen/qwen3.8-27b`. Both providers receive the same system grounding instruction and prompt. A missing key or exhausted provider chain returns a deterministic response instead. Provider/model successes are logged server-side; the API exposes only `source: "ai"` or `source: "fallback"`.
+
+### AI provider architecture
+
+`src/lib/ai/types.ts` defines the typed `TextProvider` contract. `src/lib/ai/gemini.ts` and `src/lib/ai/groq.ts` implement provider-specific SDK/fetch behavior, shared timeout and output-budget rules, and model failover. `src/lib/ai/orchestrator.ts` walks configured providers in the fixed order Gemini → Groq and logs the successful provider/model without credentials. The routes do not need to know which provider answered, so the user-facing response contract remains stable.
 
 Data sources are Open-Meteo Geocoding and Air Quality APIs (keyless), EPA AQI breakpoints in `src/lib/aqi.ts`, and the named source assumptions documented beside constants in `src/lib/impact.ts` and `src/lib/hacks.ts`.
 
@@ -47,7 +54,7 @@ Data sources are Open-Meteo Geocoding and Air Quality APIs (keyless), EPA AQI br
 
 | Brief clause | Implemented feature | Primary files |
 | --- | --- | --- |
-| GenAI-powered assistant | Gemini server client, grounded prompts, five languages, fallback narration | `src/lib/gemini.ts`, `src/lib/prompt.ts`, `src/app/api/briefing/route.ts` |
+| GenAI-powered assistant | Gemini → Groq server providers, grounded prompts, five languages, fallback narration | `src/lib/ai/`, `src/lib/prompt.ts`, `src/app/api/briefing/route.ts` |
 | Families and communities | Optional household profile and member-specific AQI risk guidance | `src/components/ProfileForm.tsx`, `src/lib/profile.ts` |
 | Severe winter smog and urban pollution | Live AQI, PM2.5, PM10, NO2, O3, CO, and 48-hour forecast | `src/lib/open-meteo.ts`, `src/components/AqiHero.tsx`, `src/components/ForecastStrip.tsx` |
 | Low-emission daily routines | Timed ventilation, errands, commute, shielding, and clean-bedroom routine | `src/lib/routine.ts`, `src/components/DailyRoutine.tsx` |
@@ -61,11 +68,11 @@ Data sources are Open-Meteo Geocoding and Air Quality APIs (keyless), EPA AQI br
 - Every API query/body and every browser-supplied plan context is parsed with Zod. Open-Meteo JSON is schema-checked before use; malformed upstream data returns a uniform 502 envelope.
 - JSON request bodies are capped at 64 KiB, API routes have per-IP sliding-window limits, and errors never echo stack traces or upstream messages.
 - API responses include HSTS, `X-Content-Type-Options`, frame denial, a restrictive referrer policy, a geolocation-only Permissions-Policy, and an API CSP with no executable sources. Document headers are configured in `next.config.ts`.
-- `GEMINI_API_KEY` is read only in server code. It is absent from the client bundle and `.env.local` is ignored. User questions and chat history are delimited and treated as data by the model instruction.
+- `GEMINI_API_KEY` and `GROQ_API_KEY` are read only in server code. They are absent from the client bundle and `.env.local` is ignored. User questions and chat history are delimited and treated as data by the shared model instruction.
 
 ## Efficiency
 
-Open-Meteo responses use a 10-minute bounded LRU cache for air data and a one-hour cache for geocoding. Identical concurrent requests share one in-flight promise. Coordinates are rounded for cache keys, upstream requests have abort timeouts, and Gemini is called only after a user clicks a briefing or sends a chat question. No UI library or binary asset is included.
+Open-Meteo responses use a 10-minute bounded LRU cache for air data and a one-hour cache for geocoding. Identical concurrent requests share one in-flight promise. Coordinates are rounded for cache keys, upstream requests have abort timeouts, and the AI chain is called only after a user clicks a briefing or sends a chat question. No UI library or binary asset is included.
 
 ## Accessibility
 
@@ -79,8 +86,8 @@ The final verification run produced:
 | --- | --- |
 | `npm run typecheck` | PASS |
 | `npm run lint` | PASS, 0 warnings |
-| `npm run test:coverage` | PASS, 265 tests in 18 files |
-| Coverage | 98.07% statements, 92.90% branches, 97.36% functions, 98.30% lines |
+| `npm run test:coverage` | PASS, 282 tests in 19 files |
+| Coverage | 97.95% statements, 91.98% branches, 98.54% functions, 98.15% lines |
 | `npm run build` | PASS |
 | `npm audit` | 0 vulnerabilities |
 
@@ -102,7 +109,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-The app is fully usable without a Gemini key. Run the production checks with:
+The app is fully usable without Gemini or Groq keys. Run the production checks with:
 
 ```bash
 npm run verify
@@ -114,5 +121,7 @@ npm audit
 
 | Variable | Required | Description |
 | --- | --- | --- |
-| `GEMINI_API_KEY` | No | Server-only Google Gemini key. Blank uses deterministic briefings and chat. |
+| `GEMINI_API_KEY` | No | Server-only Google Gemini key. Blank skips Gemini. |
 | `GEMINI_MODEL` | No | First Gemini model to try. If unset, the chain is `gemini-3.1-flash-lite` → `gemini-3.5-flash-lite`; unavailable models are skipped. |
+| `GROQ_API_KEY` | No | Server-only Groq key. Blank skips the silent Groq backup. |
+| `GROQ_MODEL` | No | First Groq model to try. If unset, the chain is `openai/gpt-oss-120b` → `qwen/qwen3.8-27b`; unavailable models are skipped. |

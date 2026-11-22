@@ -2,14 +2,14 @@
  * POST /api/chat
  *
  * Grounded conversational Q&A assistant for the family. Answers questions strictly
- * based on the structured CleanAirPlan. If GEMINI_API_KEY is not configured or fails,
- * delivers deterministic answers derived from the plan.
+ * based on the structured CleanAirPlan. If the ordered Gemini/Groq provider chain is
+ * not configured or fails, delivers deterministic answers derived from the plan.
  */
 
 import { z } from "zod";
 import { handle, jsonOk, readJsonBody } from "@/lib/api";
 import { generateDeterministicChatResponse } from "@/lib/fallback";
-import { generateText, isGeminiConfigured } from "@/lib/gemini";
+import { generateText } from "@/lib/ai/orchestrator";
 import { buildChatPrompt, SYSTEM_GROUNDING_INSTRUCTION } from "@/lib/prompt";
 import { enforceRateLimit, extractClientIp } from "@/lib/rate-limit";
 import {
@@ -36,17 +36,12 @@ export async function POST(request: Request): Promise<Response> {
 		const raw = await readJsonBody(request);
 		const { question, profile, plan, language, history } = chatEndpointSchema.parse(raw);
 
-		if (!isGeminiConfigured()) {
-			const reply = generateDeterministicChatResponse(question, plan, profile);
-			return jsonOk({
-				answer: reply,
-				source: "fallback",
-			});
-		}
-
 		try {
 			const prompt = buildChatPrompt(profile, plan, question, language, history);
-			const generated = await generateText(prompt, SYSTEM_GROUNDING_INSTRUCTION);
+			const generated = await generateText({
+				prompt,
+				systemInstruction: SYSTEM_GROUNDING_INSTRUCTION,
+			});
 
 			if (generated.length === 0) {
 				throw new Error("Empty model response");

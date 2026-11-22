@@ -7,7 +7,7 @@
  */
 
 import { handle, jsonOk } from "@/lib/api";
-import { isGeminiConfigured } from "@/lib/gemini";
+import { isAiConfigured } from "@/lib/ai/orchestrator";
 import { enforceRateLimit, extractClientIp } from "@/lib/rate-limit";
 
 /** Return a bounded, non-sensitive service health summary. */
@@ -18,7 +18,7 @@ export function GET(request: Request): Promise<Response> {
 			jsonOk({
 				status: "ok",
 				product: "ClearAir",
-				aiConfigured: isGeminiConfigured(),
+				aiConfigured: isAiConfigured(),
 				timestamp: new Date().toISOString(),
 				version: "1.0.0",
 			}),

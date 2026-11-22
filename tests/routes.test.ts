@@ -28,8 +28,8 @@ const { mockGenerateText } = vi.hoisted(() => ({
 	mockGenerateText: vi.fn(),
 }));
 
-vi.mock("@/lib/gemini", async (importOriginal) => {
-	const actual = await importOriginal<typeof import("@/lib/gemini")>();
+vi.mock("@/lib/ai/orchestrator", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("@/lib/ai/orchestrator")>();
 	return {
 		...actual,
 		generateText: mockGenerateText,
@@ -65,6 +65,14 @@ describe("API Route Handlers", () => {
 			expect(body.product).toBe("ClearAir");
 			expect(typeof body.aiConfigured).toBe("boolean");
 			expectSecurityHeaders(res);
+		});
+
+		it("reports AI configured when only Groq has a key", async () => {
+			delete process.env["GEMINI_API_KEY"];
+			process.env["GROQ_API_KEY"] = "fake-groq-key";
+
+			const res = await getHealth(new Request("http://localhost/api/health"));
+			expect((await bodyOf(res)) as { aiConfigured: boolean }).toMatchObject({ aiConfigured: true });
 		});
 	});
 
@@ -251,7 +259,7 @@ describe("API Route Handlers", () => {
 			expect(body.briefing).toContain("Daily Air Quality Briefing for New Delhi");
 		});
 
-		it("gracefully falls back to deterministic briefing when Gemini API throws an error", async () => {
+		it("falls back to the template when both AI providers fail", async () => {
 			process.env["GEMINI_API_KEY"] = "fake-key";
 			mockGenerateText.mockRejectedValueOnce(new Error("Upstream timeout"));
 
