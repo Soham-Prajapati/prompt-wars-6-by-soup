@@ -9,6 +9,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { SKY_PALETTES } from "@/lib/sky";
 
 const CSS = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
 
@@ -46,10 +47,10 @@ function contrast(a: string, b: string): number {
  * Extract a custom CSS property's hex value from a specific block of globals.css.
  */
 function token(tokenName: string, scheme: "dark" | "light"): string {
-	const boundary = CSS.indexOf("@media (prefers-color-scheme: light)");
+	const boundary = CSS.indexOf("@media (prefers-color-scheme: dark)");
 	expect(boundary).toBeGreaterThan(-1);
 
-	const region = scheme === "dark" ? CSS.slice(0, boundary) : CSS.slice(boundary);
+	const region = scheme === "light" ? CSS.slice(0, boundary) : CSS.slice(boundary);
 	const matches = [
 		...region.matchAll(new RegExp(`--${tokenName}:\\s*(#[0-9a-fA-F]{6})`, "g")),
 	];
@@ -69,13 +70,13 @@ describe("WCAG Design System Contrast", () => {
 
 	describe.each(schemes)("%s scheme", (scheme) => {
 		it("body text meets WCAG AA 4.5:1 against surface", () => {
-			const textRatio = contrast(token("text", scheme), token("surface", scheme));
+			const textRatio = contrast(token("ink", scheme), token("surface", scheme));
 			expect(textRatio).toBeGreaterThanOrEqual(4.5);
 		});
 
 		it("muted text meets WCAG AA 4.5:1 against surface", () => {
 			const mutedRatio = contrast(
-				token("text-muted", scheme),
+				token("muted", scheme),
 				token("surface", scheme),
 			);
 			expect(mutedRatio).toBeGreaterThanOrEqual(4.5);
@@ -83,11 +84,20 @@ describe("WCAG Design System Contrast", () => {
 
 		it("strong borders meet WCAG 1.4.11 non-text contrast of 3:1 against surface", () => {
 			const borderRatio = contrast(
-				token("border-strong", scheme),
+				token("line-strong", scheme),
 				token("surface", scheme),
 			);
 			expect(borderRatio).toBeGreaterThanOrEqual(3.0);
 		});
+	});
+
+	it("keeps sky text readable across every AQI band", () => {
+		for (const palette of Object.values(SKY_PALETTES)) {
+			for (const skySurface of [palette.start, palette.mid, palette.end]) {
+				expect(contrast(palette.foreground, skySurface), palette.code).toBeGreaterThanOrEqual(4.5);
+				expect(contrast(palette.muted, skySurface), `${palette.code} muted`).toBeGreaterThanOrEqual(4.5);
+			}
+		}
 	});
 
 	it("computes known mathematical reference ratios correctly", () => {

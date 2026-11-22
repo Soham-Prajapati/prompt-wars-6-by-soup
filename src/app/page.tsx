@@ -2,15 +2,14 @@
 
 import React, { useEffect, useState, useTransition } from "react";
 import { AiBriefing } from "@/components/AiBriefing";
-import { AlternativesList } from "@/components/AlternativesList";
+import { AtAGlance } from "@/components/AtAGlance";
 import { AqiHero } from "@/components/AqiHero";
-import { DailyRoutine } from "@/components/DailyRoutine";
-import { ExposureImpactCard } from "@/components/ExposureImpactCard";
 import { ForecastStrip } from "@/components/ForecastStrip";
 import { Header } from "@/components/Header";
 import { LocationPicker } from "@/components/LocationPicker";
+import { PlanTabs } from "@/components/PlanTabs";
 import { ProfileForm } from "@/components/ProfileForm";
-import { RankedHacks } from "@/components/RankedHacks";
+import { TodaySummary } from "@/components/TodaySummary";
 import { fetchCleanAirPlan } from "@/lib/client";
 import { DEFAULT_PROFILE } from "@/lib/profile";
 import type { CleanAirPlan, GeoLocation, HouseholdProfile } from "@/lib/types";
@@ -77,68 +76,51 @@ export default function HomePage(): React.JSX.Element {
 	}, [location, profile]);
 
 	return (
-		<div className="container">
+		<div className="app-shell">
 			<Header aiConfigured={aiConfigured} />
 
 			<main id="main-content" aria-busy={isLoading}>
-				<LocationPicker
-					currentLocation={location}
-					onLocationSelect={(newLoc: GeoLocation): void => {
-						setLocation(newLoc);
-					}}
-					isLoading={isLoading}
-				/>
-
-				<ProfileForm
-					initialProfile={profile}
-					onProfileChange={(newProf: HouseholdProfile): void => {
-						setProfile(newProf);
-					}}
-					isLoading={isLoading}
-				/>
+				<section className="context-bar" aria-label="Planning context">
+					<LocationPicker
+						currentLocation={location}
+						onLocationSelect={(newLoc: GeoLocation): void => {
+							setLocation(newLoc);
+						}}
+						isLoading={isLoading}
+					/>
+					<ProfileForm
+						initialProfile={profile}
+						onProfileChange={(newProf: HouseholdProfile): void => {
+							setProfile(newProf);
+						}}
+						isLoading={isLoading}
+					/>
+				</section>
 
 				{error !== null && (
-					<div
-						className="card"
-						style={{
-							backgroundColor: "var(--surface)",
-							borderColor: "var(--aqi-unhealthy)",
-							marginBottom: "2rem",
-						}}
-						role="alert"
-					>
-						<p style={{ color: "var(--aqi-unhealthy)", fontWeight: 600 }}>{error}</p>
+					<div className="error-state" role="alert">
+						<p>{error}</p>
 					</div>
 				)}
 
 				{isLoading && plan === null && (
-					<div
-						className="card"
-						style={{ textAlign: "center", padding: "3rem 1rem", marginBottom: "2rem" }}
-						role="status"
-					>
-						<p style={{ fontSize: "1.1rem", fontWeight: 600 }}>
-							Retrieving atmospheric readings and calculating low-emission plan...
-						</p>
-					</div>
+					<div className="loading-state" role="status"><span className="loading-pulse" aria-hidden="true" /><p>Reading the air and shaping today’s plan…</p></div>
 				)}
 
 				{plan !== null && (
 					<>
 						<AqiHero plan={plan} />
+						<TodaySummary plan={plan} />
 
 						<ForecastStrip
 							forecast={plan.forecast24h}
 							bestWindow={plan.bestWindow}
 						/>
 
-						<DailyRoutine routine={plan.dailyRoutine} />
-
-						<RankedHacks hacks={plan.rankedHacks} />
-
-						<AlternativesList alternatives={plan.alternatives} />
-
-						<ExposureImpactCard impact={plan.exposureImpact} />
+						<div className="plan-layout">
+							<PlanTabs plan={plan} />
+							<AtAGlance plan={plan} />
+						</div>
 
 						<AiBriefing plan={plan} profile={profile} />
 					</>

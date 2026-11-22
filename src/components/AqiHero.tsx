@@ -1,44 +1,46 @@
 import React from "react";
+import { FamilyChips } from "@/components/FamilyChips";
 import { Icon } from "@/components/Icon";
+import { getSkyPalette } from "@/lib/sky";
 import type { CleanAirPlan } from "@/lib/types";
 
 interface AqiHeroProps {
 	readonly plan: CleanAirPlan;
 }
 
-function bandTone(code: string): string {
-	if (code === "unhealthy_sensitive") return "sensitive";
-	return code.replaceAll("_", "-");
-}
-
-/** Present the current AQI, pollutant readings, and household directives. */
+/** Let the live AQI tint the atmosphere while keeping the number readable. */
 export function AqiHero({ plan }: AqiHeroProps): React.JSX.Element {
 	const { currentAqi, currentBand, dominantPollutant, pollutants, memberRisks } = plan;
-	const bandColorVar = `var(--aqi-${bandTone(currentBand.code)})`;
+	const palette = getSkyPalette(currentAqi);
+	const skyStyle = {
+		"--sky-start": palette.start,
+		"--sky-mid": palette.mid,
+		"--sky-end": palette.end,
+		"--sky-fog": palette.fog,
+		"--sky-ink": palette.foreground,
+		"--sky-muted": palette.muted,
+	} as React.CSSProperties;
 
 	return (
 		<section className="section hero-section" aria-labelledby="aqi-hero-heading">
-			<div className="hero-aqi-card">
-				<div className="aqi-gauge" style={{ borderColor: bandColorVar }}>
-					<span className="aqi-kicker">Current US AQI</span>
-					<span className="aqi-number" style={{ color: bandColorVar }}>{currentAqi}</span>
-					<span className="aqi-band-tag" style={{ color: bandColorVar }}><Icon name="shield" size={18} /><span>{currentBand.label}</span></span>
-					<span className="aqi-source">EPA US AQI</span>
-				</div>
-
-				<div className="hero-details">
-					<p className="hero-context">Morning read · {plan.location.name}</p>
-					<h2 id="aqi-hero-heading">Plan a lighter day outdoors.</h2>
-					<p className="hero-description">{currentBand.description} The plan below turns that reading into clear timing, indoor actions, and family-specific protection.</p>
-
-					<div className="pollutant-grid" aria-label="Current pollutant readings">
-						<div className="pollutant-pill"><span className="pollutant-name">Dominant · {dominantPollutant.name}</span><span className="pollutant-value">{dominantPollutant.concentration} {dominantPollutant.unit}</span></div>
-						<div className="pollutant-pill"><span className="pollutant-name">PM2.5 · fine soot</span><span className="pollutant-value">{pollutants.pm25} µg/m³</span></div>
-						<div className="pollutant-pill"><span className="pollutant-name">PM10 · dust</span><span className="pollutant-value">{pollutants.pm10} µg/m³</span></div>
-						<div className="pollutant-pill"><span className="pollutant-name">NO2 · traffic</span><span className="pollutant-value">{pollutants.no2} µg/m³</span></div>
+			<div className="sky-hero" style={skyStyle}>
+				<div className="sky-grain" aria-hidden="true" />
+				<div className="sky-topline"><span className="sky-eyebrow">Live air read</span><span>{plan.location.name}, {plan.location.country} · EPA US AQI</span></div>
+				<div className="sky-reading">
+					<div className="aqi-number" aria-label={`Current US AQI ${String(currentAqi)}`}>{currentAqi}</div>
+					<div className="sky-status">
+						<div className="sky-band"><Icon name="shield" size={18} /><strong>{currentBand.label}</strong></div>
+						<h2 id="aqi-hero-heading">Plan a lighter day outdoors.</h2>
+						<p>{currentBand.description} ClearAir has turned this reading into the few decisions that matter for your family today.</p>
 					</div>
-
-					{memberRisks.length > 0 && <div className="directive-list"><h3>Family health directives</h3><ul>{memberRisks.map((risk) => <li key={risk.memberType}><span className="directive-marker" aria-hidden="true" /><span><strong>{risk.memberType}:</strong> {risk.protectiveAction}</span></li>)}</ul></div>}
+				</div>
+				<div className="sky-footer">
+					<FamilyChips members={memberRisks} />
+					<div className="pollutant-inline" aria-label="Current pollutant readings">
+						<span>Leading <strong>{dominantPollutant.name} {dominantPollutant.concentration} {dominantPollutant.unit}</strong></span>
+						<span>PM2.5 <strong>{pollutants.pm25} µg/m³</strong></span>
+						<span>NO₂ <strong>{pollutants.no2} µg/m³</strong></span>
+					</div>
 				</div>
 			</div>
 		</section>

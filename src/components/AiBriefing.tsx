@@ -70,12 +70,12 @@ export function AiBriefing({ plan, profile }: AiBriefingProps): React.JSX.Elemen
 			<div className="card briefing-panel">
 				<div className="section-heading-row briefing-heading">
 					<div>
-						<h2 id="ai-briefing-heading" className="section-title"><Icon name="spark" /><span>Family air briefing</span></h2>
+						<h2 id="ai-briefing-heading" className="section-title"><Icon name="spark" /><span>A note from ClearAir</span></h2>
 						<p className="section-intro">A plain-language read of today&rsquo;s conditions, tailored to your household.</p>
 					</div>
 					<div className="briefing-actions">
 						<label htmlFor="language-select">Language</label>
-						<select id="language-select" data-testid="language-select" value={language} onChange={handleLanguageChange}>
+						<select id="language-select" name="language" data-testid="language-select" value={language} onChange={handleLanguageChange}>
 							{(Object.keys(LANGUAGE_LABELS) as SupportedLanguage[]).map((code) => <option key={code} value={code}>{LANGUAGE_LABELS[code]}</option>)}
 						</select>
 						<button type="button" className="btn btn-primary" data-testid="generate-briefing-button" onClick={() => void handleGenerateBriefing()} disabled={isBriefingLoading}>
@@ -103,11 +103,11 @@ export function AiBriefing({ plan, profile }: AiBriefingProps): React.JSX.Elemen
 								{message.role === "assistant" ? <MarkdownRenderer content={message.content} className="markdown-content" /> : <p>{message.content}</p>}
 							</div>
 						))}
-						{isChatLoading && <div className="chat-bubble assistant" aria-label="ClearAir is thinking"><em>Reviewing the computed facts...</em></div>}
+						{isChatLoading && <div className="chat-bubble assistant" aria-label="ClearAir is thinking"><em>Reviewing the computed facts…</em></div>}
 					</div>
 					<form onSubmit={(e) => void handleSendQuestion(e)} className="chat-input-row">
 						<label className="sr-only" htmlFor="chat-input">Ask a question about the plan</label>
-						<input id="chat-input" data-testid="chat-input" type="text" value={inputQuestion} onChange={(e) => { setInputQuestion(e.target.value); }} placeholder="Ask about air quality, timing, or routines..." disabled={isChatLoading} />
+						<input id="chat-input" name="question" autoComplete="off" data-testid="chat-input" type="text" value={inputQuestion} onChange={(e) => { setInputQuestion(e.target.value); }} placeholder="e.g. When should we go out…" disabled={isChatLoading} />
 						<button type="submit" className="btn btn-primary" data-testid="chat-send-button" disabled={isChatLoading || inputQuestion.trim().length === 0}><Icon name="send" size={16} /><span>Send</span></button>
 					</form>
 					{chatError !== null && <p role="alert" className="form-message form-message-error">{chatError}</p>}

@@ -31,31 +31,39 @@ export function ProfileForm({
 	};
 
 	return (
-		<section className="section" aria-labelledby="profile-heading">
-			<div className="card">
+		<div className="context-household">
+			<div className="context-household-copy">
+				<span className="context-label">Household</span>
+				<strong>Personalise the plan</strong>
+				<span className="context-summary">{initialProfile.childrenUnder12} child · {initialProfile.adultsOver65} older adult · {initialProfile.respiratoryCondition ? "Asthma" : "No respiratory condition"} · {initialProfile.commuteDistanceKm} km commute</span>
+			</div>
+			<div className="context-household-actions">
+				<button
+					type="button"
+					className="btn btn-secondary"
+					data-testid="edit-household-button"
+					onClick={() => {
+						setIsOpen(!isOpen);
+					}}
+					aria-expanded={isOpen}
+					aria-controls="profile-form-content"
+				>
+					{isOpen ? "Close editor" : "Edit household"}
+				</button>
+			</div>
+
+			{isOpen && <div className="profile-editor">
 				<div className="section-heading-row">
 					<h2 id="profile-heading" className="section-title">
 						<Icon name="family" />
-						<span>Household & Lifestyle Profile</span>
+						<span>Household details</span>
 					</h2>
-					<button
-						type="button"
-						className="btn btn-secondary"
-						onClick={() => {
-							setIsOpen(!isOpen);
-						}}
-						aria-expanded={isOpen}
-						aria-controls="profile-form-content"
-					>
-						{isOpen ? "Collapse Profile" : "Edit Household Details"}
-					</button>
 				</div>
 
 				<p className="section-intro">
-					ClearAir personalizes its health risk warnings, indoor hacks, and routine to your exact household composition.
+					These details shape the risk warnings, indoor actions, and routine timing.
 				</p>
 
-				{isOpen && (
 					<form
 						id="profile-form-content"
 						onSubmit={handleSubmit}
@@ -70,6 +78,8 @@ export function ProfileForm({
 									<label htmlFor="childrenUnder12">Children under 12</label>
 									<input
 										id="childrenUnder12"
+										name="childrenUnder12"
+										autoComplete="off"
 										data-testid="childrenUnder12"
 										type="number"
 										min={0}
@@ -88,6 +98,8 @@ export function ProfileForm({
 									<label htmlFor="adultsOver65">Adults over 65</label>
 									<input
 										id="adultsOver65"
+										name="adultsOver65"
+										autoComplete="off"
 										data-testid="adultsOver65"
 										type="number"
 										min={0}
@@ -105,6 +117,7 @@ export function ProfileForm({
 								<div className="form-control">
 									<label className="checkbox-control">
 										<input
+											name="pregnant"
 											data-testid="pregnant"
 											type="checkbox"
 											checked={profile.pregnant}
@@ -119,6 +132,7 @@ export function ProfileForm({
 								<div className="form-control">
 									<label className="checkbox-control">
 										<input
+											name="respiratoryCondition"
 											data-testid="respiratoryCondition"
 											type="checkbox"
 											checked={profile.respiratoryCondition}
@@ -136,6 +150,7 @@ export function ProfileForm({
 								<div className="form-control">
 									<label className="checkbox-control">
 										<input
+											name="outdoorWorker"
 											data-testid="outdoorWorker"
 											type="checkbox"
 											checked={profile.outdoorWorker}
@@ -159,6 +174,7 @@ export function ProfileForm({
 									<label htmlFor="commuteMode">Primary Transit Mode</label>
 									<select
 										id="commuteMode"
+										name="commuteMode"
 										data-testid="commuteMode"
 										value={profile.commuteMode}
 										onChange={(e) => {
@@ -182,6 +198,8 @@ export function ProfileForm({
 									<label htmlFor="commuteDistanceKm">Daily Commute Distance (km roundtrip)</label>
 									<input
 										id="commuteDistanceKm"
+										name="commuteDistanceKm"
+										autoComplete="off"
 										data-testid="commuteDistanceKm"
 										type="number"
 										min={1}
@@ -200,6 +218,7 @@ export function ProfileForm({
 									<label htmlFor="homeType">Home Structure Type</label>
 									<select
 										id="homeType"
+										name="homeType"
 										data-testid="homeType"
 										value={profile.homeType}
 										onChange={(e) => {
@@ -224,6 +243,7 @@ export function ProfileForm({
 									<label htmlFor="cookingFuel">Cooking Fuel Source</label>
 									<select
 										id="cookingFuel"
+										name="cookingFuel"
 										data-testid="cookingFuel"
 										value={profile.cookingFuel}
 										onChange={(e) => {
@@ -244,6 +264,7 @@ export function ProfileForm({
 									<label htmlFor="heating">Winter Space Heating</label>
 									<select
 										id="heating"
+										name="heating"
 										data-testid="heating"
 										value={profile.heating}
 										onChange={(e) => {
@@ -264,6 +285,7 @@ export function ProfileForm({
 								<div className="form-control">
 									<label className="checkbox-control">
 										<input
+											name="hasAirPurifier"
 											data-testid="hasAirPurifier"
 											type="checkbox"
 											checked={profile.hasAirPurifier}
@@ -281,6 +303,7 @@ export function ProfileForm({
 								<div className="form-control">
 									<label className="checkbox-control">
 										<input
+											name="hasN95Masks"
 											data-testid="hasN95Masks"
 											type="checkbox"
 											checked={profile.hasN95Masks}
@@ -298,6 +321,7 @@ export function ProfileForm({
 								<div className="form-control">
 									<label className="checkbox-control">
 										<input
+											name="smokerInHouse"
 											data-testid="smokerInHouse"
 											type="checkbox"
 											checked={profile.smokerInHouse}
@@ -314,14 +338,13 @@ export function ProfileForm({
 							</fieldset>
 						</div>
 
-						<div className="form-actions">
+					<div className="form-actions">
 							<button type="submit" className="btn btn-primary" data-testid="profile-apply-button" disabled={isLoading}>
-								{isLoading ? "Recalculating..." : "Apply & Update Routine"}
+								{isLoading ? "Recalculating…" : "Apply & update routine"}
 							</button>
 						</div>
 					</form>
-				)}
-			</div>
-		</section>
+			</div>}
+		</div>
 	);
 }

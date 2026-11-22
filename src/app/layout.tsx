@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { DM_Sans, Fraunces } from "next/font/google";
 import React from "react";
 import "./globals.css";
@@ -10,6 +10,14 @@ export const metadata: Metadata = {
 	title: "ClearAir — Urban Air Quality & Smog Copilot",
 	description:
 		"GenAI-powered assistant that helps families and communities navigate severe winter smog and urban air pollution with low-emission routines and indoor hacks.",
+};
+
+export const viewport: Viewport = {
+	colorScheme: "light dark",
+	themeColor: [
+		{ media: "(prefers-color-scheme: light)", color: "#f3f1eb" },
+		{ media: "(prefers-color-scheme: dark)", color: "#121614" },
+	],
 };
 
 /** Render the accessible application shell and document language metadata. */
