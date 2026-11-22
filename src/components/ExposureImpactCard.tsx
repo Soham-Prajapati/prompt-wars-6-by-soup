@@ -5,6 +5,7 @@ interface ExposureImpactCardProps {
 	readonly impact: ExposureImpact;
 }
 
+/** Render the modeled baseline, optimized dose, and contribution factors. */
 export function ExposureImpactCard({
 	impact,
 }: ExposureImpactCardProps): React.JSX.Element {

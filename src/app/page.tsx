@@ -25,6 +25,7 @@ const INITIAL_LOCATION: GeoLocation = {
 	timezone: "Asia/Kolkata",
 };
 
+/** Render the single-screen ClearAir briefing workflow. */
 export default function HomePage(): React.JSX.Element {
 	const [location, setLocation] = useState<GeoLocation>(INITIAL_LOCATION);
 	const [profile, setProfile] = useState<HouseholdProfile>(DEFAULT_PROFILE);
@@ -79,7 +80,7 @@ export default function HomePage(): React.JSX.Element {
 		<div className="container">
 			<Header aiConfigured={aiConfigured} />
 
-			<main id="main-content">
+			<main id="main-content" aria-busy={isLoading}>
 				<LocationPicker
 					currentLocation={location}
 					onLocationSelect={(newLoc: GeoLocation): void => {

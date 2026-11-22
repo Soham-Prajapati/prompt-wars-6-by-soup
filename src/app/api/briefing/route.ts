@@ -6,7 +6,6 @@
  * to the deterministic multilingual template briefing if unconfigured or unreachable.
  */
 
-import { z } from "zod";
 import { handle, jsonOk, readJsonBody } from "@/lib/api";
 import { generateDeterministicBriefing } from "@/lib/fallback";
 import { generateText, isGeminiConfigured } from "@/lib/gemini";
@@ -15,15 +14,20 @@ import {
 	SYSTEM_GROUNDING_INSTRUCTION,
 } from "@/lib/prompt";
 import { enforceRateLimit, extractClientIp } from "@/lib/rate-limit";
-import type { CleanAirPlan } from "@/lib/types";
-import { householdProfileSchema, supportedLanguageSchema } from "@/lib/validation";
+import {
+	cleanAirPlanSchema,
+	householdProfileSchema,
+	supportedLanguageSchema,
+} from "@/lib/validation";
+import { z } from "zod";
 
 const briefingSchema = z.object({
 	profile: householdProfileSchema,
-	plan: z.custom<CleanAirPlan>(),
+	plan: cleanAirPlanSchema,
 	language: supportedLanguageSchema.default("en"),
 });
 
+/** Narrate a validated plan with Gemini or the deterministic fallback. */
 export async function POST(request: Request): Promise<Response> {
 	return handle(async () => {
 		const ip = extractClientIp(request);

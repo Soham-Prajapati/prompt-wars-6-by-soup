@@ -18,7 +18,11 @@ export const SECURITY_HEADERS: Readonly<Record<string, string>> = {
 	"Referrer-Policy": "strict-origin-when-cross-origin",
 	"Permissions-Policy": "geolocation=(self), microphone=(), camera=()",
 	"Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+	"Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
 };
+
+/** Maximum JSON request size accepted by API routes. */
+export const MAX_JSON_BODY_BYTES = 64 * 1024;
 
 /**
  * Shape of a single validation failure.
@@ -35,6 +39,14 @@ export class MalformedBodyError extends Error {
 	constructor(message = "The request body could not be parsed as JSON.") {
 		super(message);
 		this.name = "MalformedBodyError";
+	}
+}
+
+/** Raised when a request body exceeds the API payload limit. */
+export class RequestBodyTooLargeError extends Error {
+	constructor(message = "The request body exceeds the 64 KB limit.") {
+		super(message);
+		this.name = "RequestBodyTooLargeError";
 	}
 }
 
@@ -58,6 +70,14 @@ export class GeminiUnavailableError extends Error {
 	constructor(message = "Gemini is not configured: GEMINI_API_KEY is not set.") {
 		super(message);
 		this.name = "GeminiUnavailableError";
+	}
+}
+
+/** Raised when an upstream service returns an invalid or unavailable response. */
+export class UpstreamServiceError extends Error {
+	constructor(message = "An upstream data service is unavailable.") {
+		super(message);
+		this.name = "UpstreamServiceError";
 	}
 }
 
@@ -104,10 +124,54 @@ export function jsonOk(body: unknown, status = 200): NextResponse {
  * @throws {MalformedBodyError} When JSON parsing fails or body is empty.
  */
 export async function readJsonBody(request: Request): Promise<unknown> {
-	try {
-		return (await request.json()) as unknown;
-	} catch {
+	const contentLength = request.headers.get("content-length");
+	if (contentLength !== null) {
+		const parsedLength = Number.parseInt(contentLength, 10);
+		if (Number.isFinite(parsedLength) && parsedLength > MAX_JSON_BODY_BYTES) {
+			throw new RequestBodyTooLargeError();
+		}
+	}
+
+	const reader = request.body?.getReader();
+	if (reader === undefined) {
 		throw new MalformedBodyError();
+	}
+
+	const chunks: Uint8Array[] = [];
+	let totalBytes = 0;
+	try {
+		for (;;) {
+			const result = await reader.read();
+			if (result.done) break;
+
+			const chunk = result.value;
+			totalBytes += chunk.byteLength;
+			if (totalBytes > MAX_JSON_BODY_BYTES) {
+				throw new RequestBodyTooLargeError();
+			}
+			chunks.push(chunk);
+		}
+
+		if (totalBytes === 0) {
+			throw new MalformedBodyError();
+		}
+
+		const bytes = new Uint8Array(totalBytes);
+		let offset = 0;
+		for (const chunk of chunks) {
+			bytes.set(chunk, offset);
+			offset += chunk.byteLength;
+		}
+
+		const text = new TextDecoder().decode(bytes);
+		return JSON.parse(text) as unknown;
+	} catch (error) {
+		if (error instanceof RequestBodyTooLargeError || error instanceof MalformedBodyError) {
+			throw error;
+		}
+		throw new MalformedBodyError();
+	} finally {
+		reader.releaseLock();
 	}
 }
 
@@ -147,6 +211,14 @@ export async function handle(
 
 		if (error instanceof MalformedBodyError) {
 			return jsonError(400, "MALFORMED_BODY", error.message);
+		}
+
+		if (error instanceof RequestBodyTooLargeError) {
+			return jsonError(413, "BODY_TOO_LARGE", error.message);
+		}
+
+		if (error instanceof UpstreamServiceError) {
+			return jsonError(502, "UPSTREAM_UNAVAILABLE", error.message);
 		}
 
 		if (error instanceof ZodError) {

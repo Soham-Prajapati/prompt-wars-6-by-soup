@@ -10,6 +10,7 @@ interface LocationPickerProps {
 	readonly isLoading: boolean;
 }
 
+/** Provide city search and browser-geolocation controls. */
 export function LocationPicker({
 	currentLocation,
 	onLocationSelect,
@@ -112,9 +113,9 @@ export function LocationPicker({
 					</div>
 				</form>
 
-				<div aria-live="polite">
+				<div aria-live="polite" aria-atomic="true">
 					{error !== null && (
-						<p style={{ color: "var(--aqi-unhealthy)", fontSize: "0.85rem", marginTop: "0.5rem" }}>
+						<p role="alert" style={{ color: "var(--aqi-unhealthy)", fontSize: "0.85rem", marginTop: "0.5rem" }}>
 							{error}
 						</p>
 					)}

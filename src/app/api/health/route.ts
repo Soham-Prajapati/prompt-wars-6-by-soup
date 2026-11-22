@@ -8,9 +8,12 @@
 
 import { handle, jsonOk } from "@/lib/api";
 import { isGeminiConfigured } from "@/lib/gemini";
+import { enforceRateLimit, extractClientIp } from "@/lib/rate-limit";
 
-export function GET(): Promise<Response> {
+/** Return a bounded, non-sensitive service health summary. */
+export function GET(request: Request): Promise<Response> {
 	return handle(() => {
+		enforceRateLimit(extractClientIp(request), "health");
 		return Promise.resolve(
 			jsonOk({
 				status: "ok",

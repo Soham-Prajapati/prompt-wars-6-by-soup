@@ -5,6 +5,7 @@ interface AqiHeroProps {
 	readonly plan: CleanAirPlan;
 }
 
+/** Present the current AQI, pollutant readings, and household directives. */
 export function AqiHero({ plan }: AqiHeroProps): React.JSX.Element {
 	const { currentAqi, currentBand, dominantPollutant, pollutants, memberRisks } = plan;
 

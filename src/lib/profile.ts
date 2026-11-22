@@ -164,14 +164,17 @@ function evaluateRespiratoryRisk(band: AqiBandCode): MemberRisk {
 	const riskTier = band === "good" ? "low" : elevateRisk(base);
 
 	let action = "Follow normal maintenance inhaler or medication schedule.";
-	if (band === "moderate") {
+	if (band === "good") {
+		action = "Follow normal maintenance inhaler or medication schedule.";
+	} else if (band === "moderate") {
 		action = "Carry rescue inhaler at all times; watch for airway tightness.";
 	} else if (band === "unhealthy_sensitive") {
 		action = "Avoid outdoor cardio; operate HEPA filtration continuously in sleeping area.";
 	} else if (band === "unhealthy") {
 		action = "Stay inside clean room; check peak flow meter; keep rescue inhaler within arm's reach.";
 	} else {
-		action = "Severe broncho-constriction hazard: strictly remain in sealed clean room; contact physician if symptomatic.";
+		action =
+			"Severe broncho-constriction hazard: strictly remain in sealed clean room; contact physician if symptomatic.";
 	}
 
 	return {
@@ -197,12 +200,16 @@ function evaluateOutdoorWorkerRisk(band: AqiBandCode): MemberRisk {
 				: elevateRisk(base);
 
 	let action = "Standard outdoor shift without respiratory constraints.";
-	if (band === "moderate") {
+	if (band === "good") {
+		action = "Standard outdoor shift without respiratory constraints.";
+	} else if (band === "moderate") {
 		action = "Take hydration breaks away from direct vehicle exhaust.";
 	} else if (band === "unhealthy_sensitive") {
-		action = "Wear a fitted N95 respirator during outdoor shift; take hourly breaks in indoor shelter.";
+		action =
+			"Wear a fitted N95 respirator during outdoor shift; take hourly breaks in indoor shelter.";
 	} else {
-		action = "Mandatory N95/FFP2 respirator with airtight seal; rotate shifts to minimize total outdoor hours.";
+		action =
+			"Mandatory N95/FFP2 respirator with airtight seal; rotate shifts to minimize total outdoor hours.";
 	}
 
 	return {

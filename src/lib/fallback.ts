@@ -166,11 +166,7 @@ export function generateDeterministicChatResponse(
 ): string {
 	const q = question.toLowerCase();
 
-	if (q.includes("window") || q.includes("ventilate") || q.includes("outside") || q.includes("walk") || q.includes("run")) {
-		return `Based on live forecast calculations, your cleanest outdoor window is between ${plan.bestWindow.startHour} and ${plan.bestWindow.endHour} (AQI ${String(plan.bestWindow.averageAqi)}). ${plan.bestWindow.recommendation}`;
-	}
-
-	if (q.includes("mask") || q.includes("n95")) {
+	if (q.includes("mask") || q.includes("n95") || q.includes("ffp2")) {
 		return `At an AQI of ${String(plan.currentAqi)} (${plan.currentBand.label}), wearing a well-fitted N95 or FFP2 respirator with headband straps reduces inhaled particulate exposure by up to 95%. Avoid cloth masks or loose bandanas as they do not filter fine PM2.5.`;
 	}
 
@@ -186,6 +182,10 @@ export function generateDeterministicChatResponse(
 		return vulnerable
 			? `For ${vulnerable.memberType}: ${vulnerable.riskTier.toUpperCase()} risk. ${vulnerable.protectiveAction} Physiological factor: ${vulnerable.physiologicalReason}`
 			: `Sensitive family members should avoid vigorous outdoor exertion during peak smog hours and remain in clean filtered indoor rooms.`;
+	}
+
+	if (q.includes("window") || q.includes("ventilate") || q.includes("outside") || q.includes("walk") || q.includes("run")) {
+		return `Based on live forecast calculations, your cleanest outdoor window is between ${plan.bestWindow.startHour} and ${plan.bestWindow.endHour} (AQI ${String(plan.bestWindow.averageAqi)}). ${plan.bestWindow.recommendation}`;
 	}
 
 	return `Current air quality in ${plan.location.name} is AQI ${String(plan.currentAqi)} (${plan.currentBand.label}). Following your tailored daily routine reduces your family's inhaled PM2.5 exposure by ${String(plan.exposureImpact.netReductionPct)}%. Your safest outdoor window is ${plan.bestWindow.startHour} to ${plan.bestWindow.endHour}.`;

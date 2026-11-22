@@ -5,6 +5,7 @@ interface AlternativesListProps {
 	readonly alternatives: readonly SustainableAlternative[];
 }
 
+/** Render sustainable alternatives and their named impact estimates. */
 export function AlternativesList({
 	alternatives,
 }: AlternativesListProps): React.JSX.Element {

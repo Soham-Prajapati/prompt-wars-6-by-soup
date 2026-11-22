@@ -49,11 +49,14 @@ export const EMISSION_MOTORBIKE_PM25_G_PER_KM = 0.035;
 /** Carpool (assumed occupancy 3 passengers) factor against solo car. */
 export const CARPOOL_OCCUPANCY_DIVISOR = 2.5;
 
-/** Typical annual working weeks. */
-export const WORK_WEEKS_PER_YEAR = 48;
-
 /** Typical commute days per week. */
 export const COMMUTE_DAYS_PER_WEEK = 5;
+
+/** Share of carpool vehicle emissions avoided by adding a metro leg. */
+export const CARPOOL_CO2_AVOIDANCE_FRACTION = 0.4;
+
+/** Share of carpool particulate emissions avoided by adding a metro leg. */
+export const CARPOOL_PM25_AVOIDANCE_FRACTION = 0.3;
 
 /* -------------------------------------------------------------------------- */
 /* INDOOR COOKING FUEL CONSTANTS (WHO Indoor Air Quality Guidelines)          */
@@ -68,6 +71,18 @@ export const COOKING_PM25_LPG_UG_M3 = 45;
 /** Baseline indoor 24h average PM2.5 concentration with induction electric cooking (µg/m³). */
 export const COOKING_PM25_INDUCTION_UG_M3 = 8;
 
+/** Estimated weekly CO2 avoided by moving from biomass to induction. */
+export const BIOMASS_TO_INDUCTION_CO2_AVOIDED_KG_WEEKLY = 14.5;
+
+/** Estimated weekly PM2.5 avoided by moving from biomass to induction. */
+export const BIOMASS_TO_INDUCTION_PM25_AVOIDED_GRAMS_WEEKLY = 110.0;
+
+/** Estimated weekly CO2 avoided by moving from LPG to induction. */
+export const LPG_TO_INDUCTION_CO2_AVOIDED_KG_WEEKLY = 4.2;
+
+/** Estimated weekly PM2.5 avoided by moving from LPG to induction. */
+export const LPG_TO_INDUCTION_PM25_AVOIDED_GRAMS_WEEKLY = 6.5;
+
 /* -------------------------------------------------------------------------- */
 /* SPACE HEATING CONSTANTS (EPA Burn Wise & Berkeley Air Monitoring)          */
 /* -------------------------------------------------------------------------- */
@@ -80,6 +95,23 @@ export const HEATING_COAL_PM25_G_PER_HR = 42.0;
 
 /** Average daily heating operational hours during severe winter smog episodes. */
 export const DAILY_HEATING_HOURS = 6;
+
+/** Weekly CO2 avoided when replacing a wood-burning heater with electric heating. */
+export const WOOD_TO_ELECTRIC_CO2_AVOIDED_KG_WEEKLY = 22.0;
+
+/** Weekly CO2 avoided when replacing a coal-burning heater with electric heating. */
+export const COAL_TO_ELECTRIC_CO2_AVOIDED_KG_WEEKLY = 38.5;
+
+/** Estimated indoor PM2.5 reduction when solid-fuel heating is removed. */
+export const SOLID_HEATING_INDOOR_PM25_REDUCTION_PCT = 88;
+
+/** Estimated PM2.5 concentration multiplier during the cleanest outdoor window. */
+export const BEST_WINDOW_PM25_MULTIPLIER = 0.7;
+
+/** Time-activity model constants: 21 indoor hours and 3 outdoor hours per day. */
+export const INDOOR_HOURS_PER_DAY = 21;
+export const OUTDOOR_HOURS_PER_DAY = 3;
+export const HOURS_PER_DAY = 24;
 
 /* -------------------------------------------------------------------------- */
 /* RESIDENTIAL INFILTRATION & EXPOSURE FACTORS (ASHRAE & EPA Exposure Manual) */
@@ -191,9 +223,11 @@ export function calculateCommuteAlternative(
 	if (mode === "carpool") {
 		const currentCo2Kg =
 			(weeklyKm * EMISSION_CAR_CO2_KG_PER_KM) / CARPOOL_OCCUPANCY_DIVISOR;
-		const avoidedCo2 = Math.round(currentCo2Kg * 0.4 * 10) / 10;
+		const avoidedCo2 = Math.round(currentCo2Kg * CARPOOL_CO2_AVOIDANCE_FRACTION * 10) / 10;
 		const avoidedPm =
-			Math.round(weeklyKm * EMISSION_CAR_PM25_G_PER_KM * 0.3 * 10) / 10;
+			Math.round(
+				weeklyKm * EMISSION_CAR_PM25_G_PER_KM * CARPOOL_PM25_AVOIDANCE_FRACTION * 10,
+			) / 10;
 
 		return {
 			id: "commute-optimize-carpool",
@@ -234,8 +268,8 @@ export function calculateCookingAlternative(
 			title: "Transition Solid Biomass Cooking to Electric Induction",
 			currentOption: "Wood / Dung / Charcoal Biomass Cookstove",
 			proposedOption: "Electric Induction Cooktop (or Clean LPG)",
-			co2AvoidedKgWeekly: 14.5,
-			pm25AvoidedGramsWeekly: 110.0,
+			co2AvoidedKgWeekly: BIOMASS_TO_INDUCTION_CO2_AVOIDED_KG_WEEKLY,
+			pm25AvoidedGramsWeekly: BIOMASS_TO_INDUCTION_PM25_AVOIDED_GRAMS_WEEKLY,
 			indoorPm25ReductionPct: reductionPct,
 			rationale: `Solid fuel combustion generates hazardous indoor smoke peaks exceeding 1000 µg/m³. Switching to induction cuts kitchen PM2.5 by ${String(reductionPct)}%, directly protecting infants and women.`,
 			scientificBasis:
@@ -256,8 +290,8 @@ export function calculateCookingAlternative(
 			title: "Adopt Electric Induction for Daily Boiling and Simmering",
 			currentOption: "LPG Gas Stove",
 			proposedOption: "Electric Induction Cooktop",
-			co2AvoidedKgWeekly: 4.2,
-			pm25AvoidedGramsWeekly: 6.5,
+			co2AvoidedKgWeekly: LPG_TO_INDUCTION_CO2_AVOIDED_KG_WEEKLY,
+			pm25AvoidedGramsWeekly: LPG_TO_INDUCTION_PM25_AVOIDED_GRAMS_WEEKLY,
 			indoorPm25ReductionPct: reductionPct,
 			rationale: `LPG combustion generates nitrogen dioxide (NO2) and ultrafine carbon particles. Transitioning to induction lowers indoor cooking PM2.5 by ${String(reductionPct)}%, and eliminates indoor NO2 fumes.`,
 			scientificBasis:
@@ -282,7 +316,10 @@ export function calculateHeatingAlternative(
 		const weeklyGramsAvoided = Math.round(
 			emissionFactor * DAILY_HEATING_HOURS * 7,
 		);
-		const weeklyCo2KgAvoided = heating === "wood" ? 22.0 : 38.5;
+		const weeklyCo2KgAvoided =
+			heating === "wood"
+				? WOOD_TO_ELECTRIC_CO2_AVOIDED_KG_WEEKLY
+				: COAL_TO_ELECTRIC_CO2_AVOIDED_KG_WEEKLY;
 
 		return {
 			id: "heating-solid-to-electric",
@@ -296,7 +333,7 @@ export function calculateHeatingAlternative(
 				"Radiant Oil-Filled Electric Heater or Inverter Heat Pump",
 			co2AvoidedKgWeekly: weeklyCo2KgAvoided,
 			pm25AvoidedGramsWeekly: weeklyGramsAvoided,
-			indoorPm25ReductionPct: 88,
+			indoorPm25ReductionPct: SOLID_HEATING_INDOOR_PM25_REDUCTION_PCT,
 			rationale: `Solid heating fuels generate massive neighborhood soot blankets during cold winter inversion layers. Shifting to radiant electric heating eliminates ${String(weeklyGramsAvoided)} g of fine soot per week.`,
 			scientificBasis:
 				"EPA Burn Wise Wood Smoke Research; Berkeley Air Monitoring Group Residential Heating Emission Audits.",
@@ -321,7 +358,7 @@ export function calculateExposureImpact(
 	profile: HouseholdProfile,
 	ambientPm25: number,
 ): ExposureImpact {
-	const safeAmbient = Math.max(5, ambientPm25);
+	const safeAmbient = Number.isFinite(ambientPm25) ? Math.max(5, ambientPm25) : 5;
 
 	// Baseline unmanaged scenario:
 	// - Unsealed windows (0.72 infiltration)
@@ -332,7 +369,8 @@ export function calculateExposureImpact(
 
 	// Inhaled dose = volume * ((indoorConc * 21h/24h) + (outdoorConc * 3h/24h))
 	const baselineDailyAverageConcentration =
-		(baselineIndoorPm25 * 21 + baselineOutdoorPm25 * 3) / 24;
+		(baselineIndoorPm25 * INDOOR_HOURS_PER_DAY + baselineOutdoorPm25 * OUTDOOR_HOURS_PER_DAY) /
+			HOURS_PER_DAY;
 	const baselineInhaledUg =
 		baselineDailyAverageConcentration * DAILY_INHALATION_VOLUME_M3;
 
@@ -345,12 +383,13 @@ export function calculateExposureImpact(
 	const optimizedIndoorPm25 = safeAmbient * indoorInfiltration;
 
 	// Outdoor transit with N95 mask + shifting travel to best window (which is ~30% cleaner on average)
-	const outdoorConcentrationInBestWindow = safeAmbient * 0.7;
+	const outdoorConcentrationInBestWindow = safeAmbient * BEST_WINDOW_PM25_MULTIPLIER;
 	const effectiveOutdoorPm25 =
 		outdoorConcentrationInBestWindow * RESPIRATOR_N95_TRANSMISSION;
 
 	const optimizedDailyAverageConcentration =
-		(optimizedIndoorPm25 * 21 + effectiveOutdoorPm25 * 3) / 24;
+		(optimizedIndoorPm25 * INDOOR_HOURS_PER_DAY + effectiveOutdoorPm25 * OUTDOOR_HOURS_PER_DAY) /
+			HOURS_PER_DAY;
 	const optimizedInhaledUg =
 		optimizedDailyAverageConcentration * DAILY_INHALATION_VOLUME_M3;
 

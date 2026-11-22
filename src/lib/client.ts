@@ -11,16 +11,19 @@ import type {
 	SupportedLanguage,
 } from "@/lib/types";
 
+/** Response returned by the briefing endpoint. */
 export interface BriefingResponse {
 	readonly briefing: string;
 	readonly source: "ai" | "fallback";
 }
 
+/** Response returned by the grounded chat endpoint. */
 export interface ChatResponse {
 	readonly answer: string;
 	readonly source: "ai" | "fallback";
 }
 
+/** A single client-side chat history entry. */
 export interface ChatMessage {
 	readonly role: "user" | "assistant";
 	readonly content: string;

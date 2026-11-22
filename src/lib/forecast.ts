@@ -99,12 +99,16 @@ export function build24HourForecastStrip(
 	bestWindow: BestOutdoorWindow,
 ): readonly HourlyForecastPoint[] {
 	const strip = hourly.slice(0, 24);
+	const startIndex = strip.findIndex((point) => point.hourLabel === bestWindow.startHour);
+	const endIndex = strip.findIndex((point) => point.hourLabel === bestWindow.endHour);
 
-	return strip.map((point) => {
-		const hour = point.hourLabel;
-		// Check if point falls within best window range
+	return strip.map((point, index) => {
+		// Compare positions instead of clock strings so windows crossing midnight work.
 		const isBest =
-			hour >= bestWindow.startHour && hour <= bestWindow.endHour;
+			startIndex >= 0 && endIndex >= 0 &&
+			(startIndex <= endIndex
+				? index >= startIndex && index <= endIndex
+				: index >= startIndex || index <= endIndex);
 
 		return {
 			...point,
@@ -144,7 +148,9 @@ export function parseOpenMeteoHourly(
 
 		// Extract hour display e.g. "14:00"
 		const date = new Date(timeStr);
-		const hours = String(date.getHours()).padStart(2, "0");
+		if (Number.isNaN(date.getTime())) continue;
+		const hourMatch = /T(\d{2}):\d{2}/.exec(timeStr);
+		const hours = hourMatch?.[1] ?? String(date.getHours()).padStart(2, "0");
 		const hourLabel = `${hours}:00`;
 
 		const aqi = raw.us_aqi?.[i] ?? 0;

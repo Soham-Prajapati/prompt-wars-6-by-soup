@@ -8,6 +8,7 @@ interface ForecastStripProps {
 	readonly bestWindow: BestOutdoorWindow;
 }
 
+/** Present the forecast as a visual strip with a text-table alternative. */
 export function ForecastStrip({
 	forecast,
 	bestWindow,
@@ -90,13 +91,16 @@ export function ForecastStrip({
 					</div>
 				) : (
 					<div className="forecast-scroll" role="region" aria-label="Hourly forecast strip">
-						{forecast.map((point) => {
+						{forecast.length === 0 ? (
+							<p style={{ color: "var(--text-muted)" }}>No hourly forecast is available yet. Use the current AQI guidance above.</p>
+						) : forecast.map((point) => {
 							const bandColorVar = `var(--aqi-${point.bandCode.replace("_", "-")})`;
 							return (
 								<div
 									key={point.timestamp}
 									className={`forecast-card ${point.isBestWindow ? "is-best" : ""}`}
 									title={`${point.hourLabel}: AQI ${String(point.usAqi)} (${point.bandLabel})`}
+									aria-label={`${point.hourLabel}: AQI ${String(point.usAqi)}, ${point.bandLabel}${point.isBestWindow ? ", best outdoor window" : ""}`}
 								>
 									<span style={{ fontFamily: "var(--font-mono)", fontWeight: 600 }}>
 										{point.hourLabel}

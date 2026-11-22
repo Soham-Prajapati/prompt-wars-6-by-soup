@@ -10,6 +10,7 @@ interface AiBriefingProps {
 	readonly profile: HouseholdProfile;
 }
 
+/** Provide explicit-action multilingual briefing generation and grounded chat. */
 export function AiBriefing({ plan, profile }: AiBriefingProps): React.JSX.Element {
 	const [language, setLanguage] = useState<SupportedLanguage>("en");
 	const [briefingText, setBriefingText] = useState<string | null>(null);
@@ -116,7 +117,7 @@ export function AiBriefing({ plan, profile }: AiBriefingProps): React.JSX.Elemen
 					</div>
 				</div>
 
-				<div aria-live="polite">
+				<div aria-live="polite" aria-busy={isBriefingLoading}>
 					{briefingError !== null && (
 						<p style={{ color: "var(--aqi-unhealthy)", fontSize: "0.85rem", marginBottom: "1rem" }}>
 							{briefingError}
@@ -196,7 +197,7 @@ export function AiBriefing({ plan, profile }: AiBriefingProps): React.JSX.Elemen
 					</form>
 
 					{chatError !== null && (
-						<p style={{ color: "var(--aqi-unhealthy)", fontSize: "0.8rem", marginTop: "0.5rem" }}>
+						<p role="alert" style={{ color: "var(--aqi-unhealthy)", fontSize: "0.8rem", marginTop: "0.5rem" }}>
 							{chatError}
 						</p>
 					)}

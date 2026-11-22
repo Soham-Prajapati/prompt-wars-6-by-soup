@@ -4,6 +4,7 @@ interface HeaderProps {
 	readonly aiConfigured: boolean;
 }
 
+/** Show the ClearAir identity and current narration mode. */
 export function Header({ aiConfigured }: HeaderProps): React.JSX.Element {
 	return (
 		<header className="main-header" role="banner">

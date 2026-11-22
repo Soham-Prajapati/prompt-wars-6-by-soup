@@ -15,10 +15,10 @@ export default defineConfig({
 			reporter: ["text", "json-summary"],
 			include: ["src/lib/**", "src/app/api/**"],
 			thresholds: {
-				statements: 90,
+				statements: 95,
 				branches: 90,
-				functions: 90,
-				lines: 90,
+				functions: 95,
+				lines: 95,
 			},
 		},
 	},

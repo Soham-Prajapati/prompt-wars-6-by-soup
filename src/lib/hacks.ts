@@ -215,7 +215,7 @@ export function rankIndoorHacks(
 				profile.respiratoryCondition ||
 				profile.pregnant
 			) {
-				priorityScore += 30;
+				priorityScore += 45;
 			}
 		}
 

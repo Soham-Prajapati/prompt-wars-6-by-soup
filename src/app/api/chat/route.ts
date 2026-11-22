@@ -12,9 +12,9 @@ import { generateDeterministicChatResponse } from "@/lib/fallback";
 import { generateText, isGeminiConfigured } from "@/lib/gemini";
 import { buildChatPrompt, SYSTEM_GROUNDING_INSTRUCTION } from "@/lib/prompt";
 import { enforceRateLimit, extractClientIp } from "@/lib/rate-limit";
-import type { CleanAirPlan } from "@/lib/types";
 import {
 	chatMessageSchema,
+	cleanAirPlanSchema,
 	householdProfileSchema,
 	supportedLanguageSchema,
 } from "@/lib/validation";
@@ -22,18 +22,19 @@ import {
 const chatEndpointSchema = z.object({
 	question: z.string().trim().min(1).max(400),
 	profile: householdProfileSchema,
-	plan: z.custom<CleanAirPlan>(),
+	plan: cleanAirPlanSchema,
 	language: supportedLanguageSchema.default("en"),
 	history: z.array(chatMessageSchema).max(10).optional().default([]),
 });
 
+/** Answer a validated follow-up question using only computed plan facts. */
 export async function POST(request: Request): Promise<Response> {
 	return handle(async () => {
 		const ip = extractClientIp(request);
 		enforceRateLimit(ip, "chat");
 
 		const raw = await readJsonBody(request);
-		const { question, profile, plan, language } = chatEndpointSchema.parse(raw);
+		const { question, profile, plan, language, history } = chatEndpointSchema.parse(raw);
 
 		if (!isGeminiConfigured()) {
 			const reply = generateDeterministicChatResponse(question, plan, profile);
@@ -44,7 +45,7 @@ export async function POST(request: Request): Promise<Response> {
 		}
 
 		try {
-			const prompt = buildChatPrompt(profile, plan, question, language);
+			const prompt = buildChatPrompt(profile, plan, question, language, history);
 			const generated = await generateText(prompt, SYSTEM_GROUNDING_INSTRUCTION);
 
 			if (generated.length === 0) {

@@ -5,6 +5,7 @@ interface DailyRoutineProps {
 	readonly routine: readonly RoutineSegment[];
 }
 
+/** Render the computed timed routine as an ordered timeline. */
 export function DailyRoutine({ routine }: DailyRoutineProps): React.JSX.Element {
 	return (
 		<section className="section" aria-labelledby="routine-heading">

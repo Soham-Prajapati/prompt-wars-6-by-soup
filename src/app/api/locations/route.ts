@@ -9,6 +9,7 @@ import { searchLocations } from "@/lib/open-meteo";
 import { enforceRateLimit, extractClientIp } from "@/lib/rate-limit";
 import { geocodeQuerySchema } from "@/lib/validation";
 
+/** Validate a city query and return server-validated geocoding results. */
 export async function GET(request: Request): Promise<Response> {
 	return handle(async () => {
 		const ip = extractClientIp(request);

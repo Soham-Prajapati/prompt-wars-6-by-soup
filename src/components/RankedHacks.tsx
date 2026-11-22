@@ -5,6 +5,7 @@ interface RankedHacksProps {
 	readonly hacks: readonly AirHack[];
 }
 
+/** Render ranked indoor interventions with their estimated PM2.5 impact. */
 export function RankedHacks({ hacks }: RankedHacksProps): React.JSX.Element {
 	return (
 		<section className="section" aria-labelledby="hacks-heading">

@@ -15,6 +15,7 @@ interface ProfileFormProps {
 	readonly isLoading: boolean;
 }
 
+/** Edit optional household, commute, fuel, and protection inputs. */
 export function ProfileForm({
 	initialProfile,
 	onProfileChange,

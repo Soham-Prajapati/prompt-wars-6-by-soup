@@ -8,6 +8,7 @@ export const metadata: Metadata = {
 		"GenAI-powered assistant that helps families and communities navigate severe winter smog and urban air pollution with low-emission routines and indoor hacks.",
 };
 
+/** Render the accessible application shell and document language metadata. */
 export default function RootLayout({
 	children,
 }: Readonly<{

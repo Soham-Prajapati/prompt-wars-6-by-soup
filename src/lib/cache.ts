@@ -38,6 +38,7 @@ export function formatGeoCacheKey(prefix: string, lat: number, lon: number): str
 	return `${prefix}:${rLat},${rLon}`;
 }
 
+/** Generic bounded cache that expires entries and deduplicates concurrent fetches. */
 export class BoundedLruCache<T> {
 	private readonly capacity: number;
 	private readonly ttlMs: number;

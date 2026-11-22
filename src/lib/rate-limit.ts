@@ -18,6 +18,7 @@ export const RATE_LIMITS: Readonly<Record<string, RateLimitConfig>> = {
 	air: { windowMs: 60_000, maxRequests: 60 },
 	briefing: { windowMs: 60_000, maxRequests: 20 },
 	chat: { windowMs: 60_000, maxRequests: 30 },
+	health: { windowMs: 60_000, maxRequests: 60 },
 };
 
 interface RateRecord {

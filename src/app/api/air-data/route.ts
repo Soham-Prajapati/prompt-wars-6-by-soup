@@ -9,6 +9,7 @@ import { fetchLiveAirData } from "@/lib/open-meteo";
 import { enforceRateLimit, extractClientIp } from "@/lib/rate-limit";
 import { airQualityQuerySchema } from "@/lib/validation";
 
+/** Validate coordinates and return cached, validated air-quality data. */
 export async function GET(request: Request): Promise<Response> {
 	return handle(async () => {
 		const ip = extractClientIp(request);
