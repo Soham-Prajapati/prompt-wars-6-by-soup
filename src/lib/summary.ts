@@ -4,6 +4,7 @@ export interface SummaryFact {
 	readonly id: "window" | "risk" | "action" | "exposure";
 	readonly label: string;
 	readonly value: string;
+	readonly displayValue?: string;
 	readonly note: string;
 }
 
@@ -15,6 +16,15 @@ export function firstSentence(text: string): string {
 
 function riskLabel(tier: string): string {
 	return `${tier.charAt(0).toUpperCase()}${tier.slice(1)} risk`;
+}
+
+function shortMemberLabel(memberType: string): string {
+	return memberType
+		.replace(" (under 12)", "")
+		.replace(" (over 65)", "")
+		.replace("Pregnant family member", "Pregnant member")
+		.replace("Asthma / COPD / Heart condition", "Respiratory condition")
+		.replace("Healthy adults", "Adults");
 }
 
 /** Select the four facts that should be visible before the user opens any detail. */
@@ -36,6 +46,7 @@ export function selectSummaryFacts(plan: CleanAirPlan): readonly SummaryFact[] {
 			id: "risk",
 			label: "Keep the closest eye on",
 			value: riskiest?.memberType ?? "Your household",
+			...(riskiest ? { displayValue: shortMemberLabel(riskiest.memberType) } : {}),
 			note: riskiest ? riskLabel(riskiest.riskTier) : "Low household risk",
 		},
 		{

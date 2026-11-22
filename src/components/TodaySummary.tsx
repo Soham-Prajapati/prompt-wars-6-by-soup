@@ -18,7 +18,7 @@ export function TodaySummary({ plan }: TodaySummaryProps): React.JSX.Element {
 					<div className={`summary-fact summary-fact-${fact.id}`} key={fact.id}>
 						<span className="fact-index">0{index + 1}</span>
 						<span className="fact-label">{fact.label}</span>
-						<strong className="fact-value">{fact.value}</strong>
+						<strong className="fact-value">{fact.displayValue ?? fact.value}</strong>
 						<span className="fact-note">{fact.note}</span>
 					</div>
 				))}

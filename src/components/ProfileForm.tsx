@@ -16,6 +16,11 @@ interface ProfileFormProps {
 	readonly isLoading: boolean;
 }
 
+function countLabel(count: number, singular: string, plural: string): string | null {
+	if (count === 0) return null;
+	return `${String(count)} ${count === 1 ? singular : plural}`;
+}
+
 /** Edit optional household, commute, fuel, and protection inputs. */
 export function ProfileForm({
 	initialProfile,
@@ -24,6 +29,12 @@ export function ProfileForm({
 }: ProfileFormProps): React.JSX.Element {
 	const [profile, setProfile] = useState<HouseholdProfile>(initialProfile);
 	const [isOpen, setIsOpen] = useState(false);
+	const householdSummary = [
+		countLabel(initialProfile.childrenUnder12, "child", "children"),
+		countLabel(initialProfile.adultsOver65, "older adult", "older adults"),
+		initialProfile.respiratoryCondition ? "Asthma" : "No respiratory condition",
+		`${String(initialProfile.commuteDistanceKm)} km commute`,
+	].filter((part): part is string => part !== null).join(" · ");
 
 	const handleSubmit = (e: React.SyntheticEvent): void => {
 		e.preventDefault();
@@ -35,7 +46,7 @@ export function ProfileForm({
 			<div className="context-household-copy">
 				<span className="context-label">Household</span>
 				<strong>Personalise the plan</strong>
-				<span className="context-summary">{initialProfile.childrenUnder12} child · {initialProfile.adultsOver65} older adult · {initialProfile.respiratoryCondition ? "Asthma" : "No respiratory condition"} · {initialProfile.commuteDistanceKm} km commute</span>
+				<span className="context-summary">{householdSummary}</span>
 			</div>
 			<div className="context-household-actions">
 				<button
